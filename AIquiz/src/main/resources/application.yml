@@ -1,0 +1,19 @@
+
+spring:
+  application:
+    name: AIquiz
+  datasource:
+    url: jdbc:mysql://localhost:3306/
+    username:
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: false
+server:
+  servlet:
+    session:
+      timeout: 60m
