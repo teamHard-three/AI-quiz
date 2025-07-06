@@ -1,8 +1,0 @@
-spring:
-  application:
-    name: AI-quiz
-  datasource:
-    url: jdbc:mysql://localhost:3306/
-    username: root
-    password: l2003x1007y.
-    driver-class-name: com.mysql.cj.jdbc.Driver
