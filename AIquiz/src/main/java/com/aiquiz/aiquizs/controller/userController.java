@@ -57,6 +57,6 @@ public class userController {
     public BaseResponse<String> userLogout(HttpServletRequest request) {
         // 清除用户登录状态
         request.getSession().removeAttribute("Authorization");
-        return ResultUtils.success("注销成功");
+        return ResultUtils.success("退出成功");
     }
 }
