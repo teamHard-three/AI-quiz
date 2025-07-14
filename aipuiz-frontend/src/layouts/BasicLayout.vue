@@ -18,6 +18,10 @@
               <el-icon><setting /></el-icon>
               <span>关于</span>
             </el-menu-item>
+            <el-menu-item index="3" @click="navigateTo('/login')">
+              <el-icon><setting /></el-icon>
+              <span>登录</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
         <el-main> <RouterView :key="$route.fullPath" /></el-main>
@@ -38,10 +42,13 @@ const navigateTo = (path) => {
   router.push(path)
 }
 const setActiveIndexByRoute = () => {
-  if (router.path === '/home') {
+  const path = router.currentRoute.value.path
+  if (path === '/home') {
     activeIndex.value = '1'
-  } else if (router.path === '/about') {
+  } else if (path === '/about') {
     activeIndex.value = '2'
+  } else if (path === '/login') {
+    activeIndex.value = '3'
   }
 }
 watch(
