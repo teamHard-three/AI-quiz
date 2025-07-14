@@ -9,11 +9,14 @@ import com.aiquiz.aiquizs.model.dto.user.UserRegisterRequest;
 import com.aiquiz.aiquizs.model.entity.User;
 import com.aiquiz.aiquizs.model.vo.LoginUserVO;
 import com.aiquiz.aiquizs.service.UserService;
+import com.aiquiz.aiquizs.utils.UserHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/user")
@@ -21,8 +24,9 @@ import org.springframework.web.bind.annotation.*;
 public class userController {
     @Autowired
     private UserService userService;
+
     @PostMapping("/register")
-    public BaseResponse<String> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
+    public BaseResponse<String> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             return ResultUtils.error(400, "请求体不能为空");
         }
@@ -30,12 +34,12 @@ public class userController {
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
         String userRole = userRegisterRequest.getUserRole();
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword,userRole)) {
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, userRole)) {
             return null;
         }
-        long result=-1;
-         result = userService.userRegister(userAccount, userPassword, checkPassword,userRole);
-        if (result==-1)
+        long result = -1;
+        result = userService.userRegister(userAccount, userPassword, checkPassword, userRole);
+        if (result == -1)
             return ResultUtils.error(500, "注册失败，请稍后再试");
         return ResultUtils.success("注册成功");
     }
@@ -53,10 +57,21 @@ public class userController {
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(loginUserVO);
     }
+
     @PostMapping("/logout")
     public BaseResponse<String> userLogout(HttpServletRequest request) {
         // 清除用户登录状态
         request.getSession().removeAttribute("Authorization");
         return ResultUtils.success("退出成功");
+    }
+
+    @GetMapping("/getAllteacher")
+    public BaseResponse<List<User>> getAllTeacher() {
+        List<User> teachers = userService.getAllTeachers();
+        if (teachers == null || teachers.isEmpty()) {
+            return ResultUtils.error(404, "没有找到教师信息");
+        }
+        return ResultUtils.success(teachers);
+
     }
 }
