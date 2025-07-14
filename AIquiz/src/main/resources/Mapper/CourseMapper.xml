@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.aiquiz.aiquizs.mapper.CourseMapper">
+
+    <select id="selectAllWithSelected" resultType="com.aiquiz.aiquizs.model.vo.CourseVO">
+        SELECT
+            c.id,
+            c.name,
+            c.description,
+            sc.status AS status
+        FROM
+            course c
+                LEFT JOIN
+            student_course sc
+            ON c.id = sc.courseid
+                AND sc.studentid = #{studentId}
+                AND sc.isDelete = 0
+        WHERE
+            c.isDelete = 0
+    </select>
+
+</mapper>
