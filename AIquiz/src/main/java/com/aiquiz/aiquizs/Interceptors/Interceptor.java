@@ -14,16 +14,13 @@ public class Interceptor implements HandlerInterceptor {
     @Override//返回True放行 返回false拦截
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String token = (String) request.getSession().getAttribute("Authorization");
-//        if (token == null || token.isEmpty()) {
-//            response.setStatus(401);
-//            return false; // 拦截请求
-//        }
+        if (token == null || token.isEmpty()) {
+            response.setStatus(401);
+            return false; // 拦截请求
+        }
         try {
 //            // 验证token
-//            UserVO userVO = jwt.parseJwt(token);
-            UserVO userVO=new UserVO();
-            userVO.setId(1943605749217304578L); // 模拟用户ID
-            userVO.setUserRole("student");
+            UserVO userVO = jwt.parseJwt(token);
             UserHolder.saveUser(userVO); // 将用户信息保存到线程本地变量中
             return true; // 放行请求
         } catch (Exception e) {
