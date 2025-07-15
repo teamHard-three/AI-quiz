@@ -17,3 +17,11 @@ export function loginUser(data) {
 export function registerUser(data) {
   return axios.post('/api/user/register', data)
 }
+
+/**
+ * 获取所有教师列表
+ * @returns {Promise}
+ */
+export function getTeacherList() {
+  return axios.get('/api/user/getAllteacher')
+}

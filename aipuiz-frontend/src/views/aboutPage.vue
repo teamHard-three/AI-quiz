@@ -8,18 +8,24 @@
 
 <script setup lang="ts">
 import axios from 'axios'
+import { computed } from 'vue'
+
+const user = computed(() => {
+  const u = localStorage.getItem('user')
+  return u ? JSON.parse(u) : null
+})
 
 const handleLogout = async () => {
   try {
     // 发送 POST 请求到后端退出登录接口
     await axios.post('/api/user/logout', {}, { withCredentials: true })
 
-    // 清除本地用户信息（如果有的话）
-    // localStorage.removeItem('user');
+    // 清除本地用户信息
+    localStorage.removeItem('user');
+    window.location.href = '/home'; // 强制刷新页面
 
     alert('已成功退出登录')
-    // 可选：跳转到登录页或其他页面
-    // window.location.href = '/login';
+    // 跳转到首页或登录页，刷新页面状态
   } catch (error) {
     console.error('退出登录失败:', error)
     alert('退出登录失败，请重试')
