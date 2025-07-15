@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/admincourse")
@@ -27,8 +28,9 @@ public class courseController {
     @PostMapping("/addCourse")
     public BaseResponse<String> addCourse(@RequestBody CourseAddRequest courseAddRequest) {
         // 参数校验
-        if(UserHolder.getUser().getUserRole()!= UserConstant.ADMIN_ROLE)
+        if(!Objects.equals(UserHolder.getUser().getUserRole(), UserConstant.ADMIN_ROLE))
         {
+            System.out.println(UserHolder.getUser().getUserRole());
           return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "无权限添加课程");
         };
         if (courseAddRequest== null) {
@@ -64,7 +66,7 @@ public class courseController {
     @PostMapping("/updateCourse/{id}")
     public BaseResponse<String> updateCourse(@PathVariable Long id, @RequestBody CourseAddRequest courseAddRequest) {
         // 参数校验
-        if(UserHolder.getUser().getUserRole()!= UserConstant.ADMIN_ROLE)
+        if(!Objects.equals(UserHolder.getUser().getUserRole(), UserConstant.ADMIN_ROLE))
         {
             return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "无权限修改课程");
         }
@@ -97,7 +99,7 @@ public class courseController {
     }
     @GetMapping("/joinCourserequest/{id}")
     public BaseResponse<List<StudentCourse>> joinCourse(@PathVariable Long id) {
-        if (UserHolder.getUser().getUserRole() != UserConstant.ADMIN_ROLE) {
+        if (!Objects.equals(UserHolder.getUser().getUserRole(), UserConstant.ADMIN_ROLE)) {
             return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "无权限处理请求");
         }
         if (id == null || id <= 0) {
@@ -112,7 +114,7 @@ public class courseController {
     }
     @GetMapping("/acceptJoinRequest/{id}")
     public BaseResponse<String> acceptJoinRequest(@PathVariable Long id,@RequestParam("status") String status) {
-        if (UserHolder.getUser().getUserRole() != UserConstant.ADMIN_ROLE) {
+        if (!Objects.equals(UserHolder.getUser().getUserRole(), UserConstant.ADMIN_ROLE)) {
             return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "无权限处理请求");
         }
         if (id == null || id <= 0) {

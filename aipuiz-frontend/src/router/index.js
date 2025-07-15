@@ -28,7 +28,11 @@ const router = createRouter({
           name: '登录',
           component: LoginPage,
         },
-        
+        {
+          path: 'register',
+          name: '注册',
+          component: RegisterPage,
+        },
       ],
     },
   ],

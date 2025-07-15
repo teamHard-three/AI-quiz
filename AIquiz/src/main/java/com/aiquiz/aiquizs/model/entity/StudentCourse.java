@@ -1,6 +1,8 @@
 package com.aiquiz.aiquizs.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -15,6 +17,7 @@ public class StudentCourse implements Serializable {
     /**
      * 选课记录ID
      */
+    @JsonSerialize(using = ToStringSerializer.class)
     @TableId(type = IdType.AUTO)
     private Long id;
 

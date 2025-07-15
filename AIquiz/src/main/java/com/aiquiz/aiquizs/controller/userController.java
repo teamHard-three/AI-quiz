@@ -71,6 +71,7 @@ public class userController {
         if (teachers == null || teachers.isEmpty()) {
             return ResultUtils.error(404, "没有找到教师信息");
         }
+
         return ResultUtils.success(teachers);
 
     }

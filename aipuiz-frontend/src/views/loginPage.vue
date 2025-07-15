@@ -56,7 +56,8 @@ const handleLogin = async () => {
     const response = await loginUser(formData.value)
     if (response.data.code === 0) {
       alert('登录成功')
-      //跳转到首页去
+      // 保存用户信息到 localStorage
+      localStorage.setItem('user', JSON.stringify(response.data.data))
       router.push('/home')
     } else {
       alert(response.data.message || '登录失败')
