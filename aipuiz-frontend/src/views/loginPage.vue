@@ -68,44 +68,96 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
+body,
+#app {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: #e0c3fc; /* 增加背景底色，防止渐变未加载时有底色 */
+  background-image: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+}
+
 .login-container {
   max-width: 400px;
-  margin: 50px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background-color: #f9f9f9;
+  margin: 60px auto;
+  padding: 40px 32px 32px 32px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h2 {
+  text-align: center;
+  color: #6c63ff;
+  font-weight: bold;
+  margin-bottom: 30px;
+  letter-spacing: 8px;
+  font-size: 2rem;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  width: 100%;
+  margin-bottom: 22px;
 }
 
 label {
   display: block;
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  color: #6c63ff;
 }
 
 input[type='text'],
 input[type='password'] {
   width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 2px solid #bdbdbd;
+  background: transparent;
+  outline: none;
+  font-size: 1rem;
+  margin-bottom: 2px;
+  transition: border-color 0.3s;
+}
+
+input[type='text']:focus,
+input[type='password']:focus {
+  border-bottom: 2px solid #6c63ff;
 }
 
 .login-button {
   width: 100%;
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
+  padding: 12px;
+  background-image: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
   cursor: pointer;
-  font-size: 16px;
+  margin-top: 10px;
+  transition: background 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 8px rgba(140, 198, 252, 0.15);
 }
 
 .login-button:hover {
-  background-color: #0056b3;
+  background-image: linear-gradient(120deg, #8ec5fc 0%, #e0c3fc 100%);
+  box-shadow: 0 4px 16px rgba(140, 198, 252, 0.25);
+}
+
+a,
+.router-link-active {
+  color: #6c63ff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  margin: 0 8px;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 </style>
