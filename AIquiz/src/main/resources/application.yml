@@ -1,11 +1,15 @@
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   application:
     name: AIquiz
   datasource:
     url: jdbc:mysql://localhost:3306/aiquiz
     username: root
-    password: F0606y0722h..
+    password: l2003x1007y.
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 
@@ -17,3 +21,6 @@ server:
   servlet:
     session:
       timeout: 60m
+
+
+
