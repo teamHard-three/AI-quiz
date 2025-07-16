@@ -9,7 +9,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/aiquiz
     username: root
-    password: l2003x1007y.
+    password: F0606y0722h..
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 
