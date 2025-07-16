@@ -83,7 +83,7 @@ public class courseController {
     @GetMapping("/deleteCourse")
     public BaseResponse<String> deleteCourse(@RequestParam List<Long> ids) {
         // 参数校验
-        if(UserHolder.getUser().getUserRole()!= UserConstant.ADMIN_ROLE)
+        if(!Objects.equals(UserHolder.getUser().getUserRole(), UserConstant.ADMIN_ROLE))
         {
             return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "无权限删除课程");
         }

@@ -6,6 +6,37 @@
         <!-- 学生主页内容 -->
         <h2>欢迎学生：{{ user.userAccount }}</h2>
         <p>这里是学生专属主页内容。</p>
+        <table class="course-table" v-if="studentCourseList.length">
+          <thead>
+            <tr>
+              <th>课程ID</th>
+              <th>课程名称</th>
+              <th>课程描述</th>
+              <th>选课状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="course in studentCourseList" :key="course.id">
+              <td>{{ course.id }}</td>
+              <td>{{ course.name }}</td>
+              <td>{{ course.description }}</td>
+              <td>
+                <template v-if="course.status === null">
+                  未选
+                  <button @click="handleSelectCourse(course.id)">选择</button>
+                </template>
+                <template v-else-if="course.status === 'rejected' || course.status === 'REJECTED'">
+                  已拒绝
+                  <button @click="handleSelectCourse(course.id)">重新申请</button>
+                </template>
+                <template v-else>
+                  {{ statusText(course.status) }}
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else>暂无课程</div>
       </template>
       <template v-else-if="user.userRole === 'teacher'">
         <!-- 老师主页内容 -->
@@ -87,18 +118,49 @@
             </tr>
           </tbody>
         </table>
+        <div style="margin-top: 20px;">
+          <h4>学生选课申请列表</h4>
+          <table v-if="allJoinRequests.length" class="course-table">
+            <thead>
+              <tr>
+                <th>申请ID</th>
+                <th>课程名称</th>
+                <th>学生ID</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="req in allJoinRequests" :key="req.id">
+                <td>{{ req.id }}</td>
+                <td>{{ req.courseName }}</td>
+                <td>{{ req.studentId }}</td>
+                <td>{{ statusText(req.status) }}</td>
+                <td>
+                  <button @click="handleApproveJoin(req.id)">同意</button>
+                  <button @click="handleRejectJoin(req.id)">不同意</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else>暂无学生申请</div>
+        </div>
       </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { addCourse } from '@/api/course'
 import { getTeacherList } from '@/api/user'
 import { getCourseList } from '@/api/course'
 import { updateCourse } from '@/api/course'
 import { deleteCourse } from '@/api/course'
+import { getStudentCourseList } from '@/api/course'
+import { joinCourse } from '@/api/course'
+import { getJoinCourseRequestList } from '@/api/course'
+import { acceptJoinRequest } from '@/api/course'
 
 const user = ref()
 
@@ -141,7 +203,8 @@ const openEdit = (course) => {
 
 const handleEditCourse = async () => {
   try {
-    const res = await updateCourse(editForm.value)
+    const { id, name, description, teacherId } = editForm.value
+    const res = await updateCourse(id, { name, description, teacherId })
     if (res.data.code === 0) {
       alert('修改成功')
       editVisible.value = false
@@ -155,7 +218,7 @@ const handleEditCourse = async () => {
   }
 }
 
-const getTeacherName = (teacherId: string | number) => {
+const getTeacherName = (teacherId: string) => {
   const teacher = teacherList.value.find(t => t.id === teacherId)
   return teacher ? teacher.userName : teacherId
 }
@@ -202,6 +265,40 @@ const fetchCourseList = async () => {
   }
 }
 
+const studentCourseList = ref<any[]>([])
+
+const fetchStudentCourseList = async () => {
+  if (!user.value) return
+  try {
+    const res = await getStudentCourseList(user.value.id)
+    if (res.data.code === 0) {
+      studentCourseList.value = res.data.data
+      console.log('studentCourseList:', studentCourseList.value) // 打印内容
+    }
+  } catch (e) {
+    alert('获取学生课程列表失败')
+  }
+}
+
+const allJoinRequests = ref<any[]>([])
+
+const fetchAllJoinRequests = async () => {
+  const requests: any[] = []
+  for (const course of courseList.value) {
+    const res = await getJoinCourseRequestList(course.id)
+    if (res.data.code === 0 && Array.isArray(res.data.data)) {
+      // 给每条申请加上课程名
+      res.data.data.forEach(req => {
+        requests.push({
+          ...req,
+          courseName: course.name
+        })
+      })
+    }
+  }
+  allJoinRequests.value = requests
+}
+
 onMounted(async () => {
   updateUser()
   if (user.value && user.value.userRole === 'admin') {
@@ -210,11 +307,20 @@ onMounted(async () => {
       if (res.data.code === 0) {
         teacherList.value = res.data.data
       }
-      // 获取课程列表
       await fetchCourseList()
+      await fetchAllJoinRequests() // 新增
     } catch (e) {
       alert('获取教师列表或课程列表失败')
     }
+  }
+  if (user.value && user.value.userRole === 'student') {
+    await fetchStudentCourseList()
+  }
+})
+
+watch(courseList, async (newVal) => {
+  if (user.value && user.value.userRole === 'admin') {
+    await fetchAllJoinRequests()
   }
 })
 
@@ -227,6 +333,63 @@ const handleAddCourse = async () => {
       await fetchCourseList() // 添加成功后刷新
     } else {
       alert(res.data.message || '创建失败')
+    }
+  } catch (e) {
+    alert('请求失败')
+  }
+}
+
+const statusText = (status: string | null) => {
+  if (status === null) return '未选'
+  if (status === 'pending' || status === 'PENDING') return '待审核'
+  if (status === 'approved' || status === 'APPROVED') return '已通过'
+  if (status === 'rejected' || status === 'REJECTED') return '已拒绝'
+  return status
+}
+
+const handleSelectCourse = async (courseId: string | number) => {
+  if (!window.confirm('是否选择该课程？')) {
+    return
+  }
+  try {
+    const res = await joinCourse(courseId)
+    if (res.data.code === 0) {
+      alert('选课申请已提交，等待审核')
+      await fetchStudentCourseList()
+    } else {
+      alert(res.data.message || '选课失败')
+    }
+  } catch (e) {
+    alert('请求失败')
+  }
+}
+
+const handleApproveJoin = async (requestId: string | number) => {
+  if (!window.confirm('确定要同意该学生加入课程吗？')) return
+  try {
+    const res = await acceptJoinRequest(requestId, 'APPROVED')
+    if (res.data.code === 0) {
+      alert('同意成功')
+      await fetchAllJoinRequests() // 刷新申请列表
+      await fetchCourseList()      // 刷新课程列表，确保数据最新
+    } else {
+      alert(res.data.message || '同意失败')
+    }
+  } catch (e) {
+    alert('请求失败')
+  }
+}
+
+const handleRejectJoin = async (requestId: string | number) => {
+  if (!window.confirm('确定要拒绝该学生加入课程吗？')) return
+  try {
+    const res = await acceptJoinRequest(requestId, 'REJECTED')
+    if (res.data.code === 0) {
+      alert('拒绝成功')
+      await fetchAllJoinRequests()
+      await fetchCourseList()
+    } else {
+      alert(res.data.message || '拒绝失败')
     }
   } catch (e) {
     alert('请求失败')
