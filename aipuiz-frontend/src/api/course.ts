@@ -73,4 +73,3 @@ export function getTeacherCourseList(teacherId: string | number) {
   return axios.get(`/api/teachercourse/getCourseList/${teacherId}`);
 }
 
-}
