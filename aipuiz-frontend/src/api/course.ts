@@ -14,7 +14,7 @@ export function getCourseList() {
 
 // 获取课程详情（根据ID）
 export function getCourseById(id: string | number) {
-  return axios.post(`/api/admincourse/getCourseById/${id}`, null);
+  return axios.get(`/api/admincourse/getCourseById/${id}`);
 }
 
 // 修改课程
@@ -56,4 +56,21 @@ export function joinCourse(courseId: string | number) {
 // 查询所有教师
 export function getAllTeachers() {
   return axios.get('/api/user/getAllteacher');
+}
+
+// 教师上传课程内容
+export function uploadCourseContent(file: File, courseId: string | number) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('courseId', String(courseId));
+  return axios.post('/api/teachercourse/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+}
+
+// 获取教师课程列表
+export function getTeacherCourseList(teacherId: string | number) {
+  return axios.get(`/api/teachercourse/getCourseList/${teacherId}`);
+}
+
 }

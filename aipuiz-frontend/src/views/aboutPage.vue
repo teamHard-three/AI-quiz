@@ -1,7 +1,10 @@
 <template>
   <div>
-    <h2>欢迎来到关于</h2>
-    <p>这里是关于内容。</p>
+    <h2>个人主页</h2>
+    <div v-if="user">
+      <p>账号：{{ user.userAccount }}</p>
+      <p>角色：{{ user.userRole === 'student' ? '学生' : user.userRole === 'teacher' ? '教师' : user.userRole === 'admin' ? '管理员' : user.userRole }}</p>
+    </div>
     <button @click="handleLogout" class="logout-button">退出登录</button>
   </div>
 </template>

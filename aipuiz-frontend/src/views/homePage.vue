@@ -1,4 +1,65 @@
 <template>
+  <div>
+    <div v-if="!user">您还没登录</div>
+    <div v-else>
+      <template v-if="user.userRole === 'student'">
+        <!-- 学生主页内容 -->
+        <h2>欢迎学生：{{ user.userAccount }}</h2>
+        <p>这里是学生专属主页内容。</p>
+        <table class="course-table" v-if="studentCourseList.length">
+          <thead>
+            <tr>
+              <th>课程ID</th>
+              <th>课程名称</th>
+              <th>课程描述</th>
+              <th>选课状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="course in studentCourseList" :key="course.id">
+              <td>{{ course.id }}</td>
+              <td>{{ course.name }}</td>
+              <td>{{ course.description }}</td>
+              <td>
+                <template v-if="course.status === null">
+                  未选
+                  <button @click="handleSelectCourse(course.id)">选择</button>
+                </template>
+                <template v-else-if="course.status === 'rejected' || course.status === 'REJECTED'">
+                  已拒绝
+                  <button @click="handleSelectCourse(course.id)">重新申请</button>
+                </template>
+                <template v-else>
+                  {{ statusText(course.status) }}
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else>暂无课程</div>
+      </template>
+      <template v-else-if="user.userRole === 'teacher'">
+        <h2>欢迎老师：{{ user.userAccount }}</h2>
+        <p>这里是老师专属主页内容。</p>
+        <div style="margin-bottom: 20px;">
+          <h3>上传课程内容</h3>
+          <select v-model="selectedCourseId" required>
+            <option value="" disabled>请选择课程</option>
+            <option v-for="course in teacherCourseList" :key="course.id" :value="course.id">
+              {{ course.name }}
+            </option>
+          </select>
+          <input type="file" @change="onFileChange" accept=".pdf,.ppt,.pptx" />
+          <button :disabled="uploadLoading" @click="handleUpload">
+            {{ uploadLoading ? '上传中...' : '上传' }}
+          </button>
+          <div v-if="uploadLoading">
+            上传进度：{{ uploadProgress }}%
+          </div>
+        </div>
+        <div>
+          <h3>我的课程列表</h3>
+          <table class="course-table" v-if="teacherCourseList.length">
   <div class="home-root">
     <div class="card">
       <div class="search-bar" v-if="user && user.userRole === 'admin'">
@@ -16,6 +77,15 @@
                 <th>课程ID</th>
                 <th>课程名称</th>
                 <th>课程描述</th>
+                <th>创建时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="course in teacherCourseList" :key="course.id">
+                <td>{{ course.id }}</td>
+                <td>{{ course.name }}</td>
+                <td>{{ course.description }}</td>
+                <td>{{ course.createTime }}</td>
                 <th>选课状态</th>
               </tr>
             </thead>
@@ -37,10 +107,39 @@
                     {{ statusText(course.status) }}
                   </template>
                 </td>
+
               </tr>
             </tbody>
           </table>
           <div v-else>暂无课程</div>
+        </div>
+      </template>
+      <template v-else-if="user.userRole === 'admin'">
+        <!-- 管理员主页内容 -->
+        <h2>欢迎管理员：{{ user.userAccount }}</h2>
+        <p>这里是管理员专属主页内容。</p>
+        <form @submit.prevent="handleAddCourse" class="add-course-form">
+          <div>
+            <label>课程名称：</label>
+            <input v-model="courseForm.name" required placeholder="请输入课程名称" />
+          </div>
+          <div>
+            <label>课程描述：</label>
+            <input v-model="courseForm.description" required placeholder="请输入课程描述" />
+          </div>
+          <div>
+            <label>教师：</label>
+            <select v-model="courseForm.teacherId" required>
+              <option value="" disabled>请选择教师</option>
+              <option v-for="teacher in teacherList" :key="teacher.id" :value="teacher.id">
+                {{ teacher.userName }}
+              </option>
+            </select>
+          </div>
+          <button type="submit">创建课程</button>
+        </form>
+        <div v-if="editVisible" class="edit-dialog">
+          <form @submit.prevent="handleEditCourse">
         </template>
         <template v-else-if="user.userRole === 'teacher'">
           <h2>欢迎老师：{{ user.userAccount }}</h2>
@@ -69,6 +168,39 @@
             </div>
             <button class="submit-btn" type="submit">创建课程</button>
           </form>
+        </div>
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
+          <input v-model="searchName" placeholder="按课程名称查询" style="padding: 4px 8px; margin-right: 8px;" />
+          <button @click="handleSearch">查询</button>
+        </div>
+        <table class="course-table" v-if="courseList.length">
+          <thead>
+            <tr>
+              <th>课程ID</th>
+              <th>课程名称</th>
+              <th>课程描述</th>
+              <th>教师</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="course in filteredCourseList" :key="course.id" @click="showCourseDetail(course.id)" style="cursor:pointer;">
+              <td>{{ course.id }}</td>
+              <td>{{ course.name }}</td>
+              <td>{{ course.description }}</td>
+              <td>
+                {{ getTeacherName(course.teacherId) }}
+              </td>
+              <td>
+                <button @click.stop="openEdit(course)">修改</button>
+                <button @click.stop="confirmDelete(course.id)">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top: 20px;">
+          <h4>学生选课申请列表</h4>
+          <table v-if="allJoinRequests.length" class="course-table">
           <div v-if="editVisible" class="edit-dialog">
             <form @submit.prevent="handleEditCourse">
               <div>
@@ -108,6 +240,19 @@
                 <td>{{ course.description }}</td>
                 <td>{{ getTeacherName(course.teacherId) }}</td>
                 <td>
+                  <template v-if="req.status === 'PENDING' || req.status === 'pending'">
+                    <button @click="handleApproveJoin(req.id)">同意</button>
+                    <button @click="handleRejectJoin(req.id)">不同意</button>
+                  </template>
+                  <template v-else-if="req.status === 'APPROVED' || req.status === 'approved'">
+                    <span style="color:green;">已同意</span>
+                  </template>
+                  <template v-else-if="req.status === 'REJECTED' || req.status === 'rejected'">
+                    <span style="color:red;">已拒绝</span>
+                  </template>
+                  <template v-else>
+                    已操作
+                  </template>
                   <button class="edit" @click="openEdit(course)">修改</button>
                   <button class="delete" @click="confirmDelete(course.id)">删除</button>
                 </td>
@@ -145,6 +290,17 @@
       </div>
     </div>
   </div>
+  <div v-if="courseDetailVisible" class="course-detail-dialog">
+    <div class="course-detail-card">
+      <h3>课程详情</h3>
+      <p><strong>课程ID：</strong>{{ courseDetail.id }}</p>
+      <p><strong>课程名称：</strong>{{ courseDetail.name }}</p>
+      <p><strong>课程描述：</strong>{{ courseDetail.description }}</p>
+      <p><strong>教师：</strong>{{ getTeacherName(courseDetail.teacherId) }}</p>
+      <!-- 可根据需要补充更多字段 -->
+      <button @click="courseDetailVisible = false">关闭</button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -158,6 +314,7 @@ import { getStudentCourseList } from '@/api/course'
 import { joinCourse } from '@/api/course'
 import { getJoinCourseRequestList } from '@/api/course'
 import { acceptJoinRequest } from '@/api/course'
+import { uploadCourseContent, getTeacherCourseList, getCourseById } from '@/api/course'
 
 const user = ref()
 
@@ -215,8 +372,8 @@ const handleEditCourse = async () => {
   }
 }
 
-const getTeacherName = (teacherId: string) => {
-  const teacher = teacherList.value.find(t => t.id === teacherId)
+const getTeacherName = (teacherId: string | number) => {
+  const teacher = teacherList.value.find(t => String(t.id) === String(teacherId))
   return teacher ? teacher.userName : teacherId
 }
 
@@ -313,6 +470,9 @@ onMounted(async () => {
   if (user.value && user.value.userRole === 'student') {
     await fetchStudentCourseList()
   }
+  if (user.value && user.value.userRole === 'teacher') {
+    await fetchTeacherCourseList()
+  }
 })
 
 watch(courseList, async (newVal) => {
@@ -390,6 +550,81 @@ const handleRejectJoin = async (requestId: string | number) => {
     }
   } catch (e) {
     alert('请求失败')
+  }
+}
+
+// 教师课程列表
+const teacherCourseList = ref<any[]>([])
+
+// 上传相关
+const uploadLoading = ref(false)
+const uploadProgress = ref(0)
+const selectedFile = ref<File | null>(null)
+const selectedCourseId = ref<string | number>('')
+
+const onFileChange = (e: Event) => {
+  const files = (e.target as HTMLInputElement).files
+  if (files && files.length > 0) {
+    selectedFile.value = files[0]
+  } else {
+    selectedFile.value = null
+  }
+}
+
+// 获取教师课程列表
+const fetchTeacherCourseList = async () => {
+  if (!user.value) return
+  try {
+    const res = await getTeacherCourseList(user.value.id)
+    if (res.data.code === 0) {
+      teacherCourseList.value = res.data.data
+    }
+  } catch (e) {
+    alert('获取课程列表失败')
+  }
+}
+
+// 上传课程内容
+const handleUpload = async () => {
+  if (!selectedFile.value || !selectedCourseId.value) {
+    alert('请选择课程和文件')
+    return
+  }
+  uploadLoading.value = true
+  uploadProgress.value = 0
+  try {
+    await uploadCourseContent(selectedFile.value, selectedCourseId.value, {
+      onUploadProgress: (progressEvent: ProgressEvent) => {
+        if (progressEvent.lengthComputable) {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        }
+      }
+    })
+    alert('上传成功')
+    selectedFile.value = null
+    selectedCourseId.value = ''
+  } catch (e) {
+    alert('上传失败')
+  } finally {
+    uploadLoading.value = false
+    uploadProgress.value = 0
+  }
+}
+
+const courseDetailVisible = ref(false)
+const courseDetail = ref<any>(null)
+
+const showCourseDetail = async (courseId: string | number) => {
+  try {
+    const res = await getCourseById(courseId)
+    if (res.data.code === 0) {
+      courseDetail.value = res.data.data
+      courseDetailVisible.value = true
+    } else {
+      alert(res.data.message || '获取课程详情失败')
+    }
+  } catch (e) {
+    alert('获取课程详情失败')
   }
 }
 </script>
@@ -645,5 +880,21 @@ input[placeholder], select {
     min-width: 60px;
     padding: 8px 6px;
   }
+}
+.course-detail-dialog {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.course-detail-card {
+  background: #fff;
+  padding: 32px 40px;
+  border-radius: 8px;
+  min-width: 320px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 </style>
