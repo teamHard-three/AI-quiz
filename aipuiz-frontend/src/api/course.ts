@@ -9,7 +9,7 @@ export function addCourse(data: { name: string; description: string; teacherId: 
 
 // 获取所有课程列表
 export function getCourseList() {
-  return axios.post('/api/admincourse/getCourseList', {});
+  return axios.get('/api/admincourse/getCourseList');
 }
 
 // 获取课程详情（根据ID）
@@ -57,4 +57,3 @@ export function joinCourse(courseId: string | number) {
 export function getAllTeachers() {
   return axios.get('/api/user/getAllteacher');
 }
-

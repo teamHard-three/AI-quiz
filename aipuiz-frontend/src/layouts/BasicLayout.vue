@@ -43,4 +43,39 @@ const navigateTo = (path) => {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.el-aside {
+  background: #ededf4 !important;
+  border-radius: 0 0 18px 18px;
+  min-height: 100vh;
+  padding-top: 0;
+}
+
+.el-menu-vertical-demo {
+  background: #ededf4 !important;
+  border-right: none;
+  box-shadow: none;
+}
+
+.el-menu-vertical-demo .el-menu-item {
+  background: #ededf4 !important;
+  color: #333 !important;
+  border-radius: 0;
+  margin: 0;
+  transition: background 0.2s, color 0.2s;
+  border-bottom: 1px solid rgb(207, 209, 211);
+}
+
+
+
+.el-menu-vertical-demo .el-menu-item.is-active {
+  background: #8ea4ca !important;
+  color:rgb(80, 126, 138) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(143,182,233,0.10);
+}
+
+.el-menu-vertical-demo .el-menu-item.is-active .el-icon {
+  color:rgb(32, 187, 235) !important;
+}
+</style>
