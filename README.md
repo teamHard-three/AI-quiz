@@ -1,6 +1,6 @@
 # AI-quiz 智能题目生成与管理系统
 
-AI-quiz 是一个基于人工智能的在线题库管理系统，支持从课程资料中自动生成高质量选择题，并支持题目评估、优化和用户测试。
+AI-quiz 是一个基于人工智能的在线题库管理系统，支持从课程资料中自动生成高质量选择题。
 
 ## 📦 项目结构
 ai-quiz/
@@ -35,7 +35,6 @@ password: your_password
 
 -请在AIquiz/main/resources/config.properties中配置OpenAI API密钥：
 
-```properties
 ## 🌐 前端配置（Vue 3）
 1. 安装依赖
    cd aiquizs-frontend
