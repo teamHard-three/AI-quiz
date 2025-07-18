@@ -2,6 +2,7 @@ package com.aiquiz.aiquizs.service;
 
 import com.aiquiz.aiquizs.model.dto.course.CourseAddRequest;
 import com.aiquiz.aiquizs.model.entity.Course;
+import com.aiquiz.aiquizs.model.entity.CourseQuestion;
 import com.aiquiz.aiquizs.model.vo.CourseVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -19,4 +20,5 @@ public interface CourseService extends IService<Course> {
     List<CourseVO> getstudentCourseList(Long id);
 
 
+    CourseQuestion getQuestion(Long courseid);
 }
