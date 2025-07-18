@@ -5,6 +5,7 @@ import com.aiquiz.aiquizs.commom.BaseResponse;
 import com.aiquiz.aiquizs.commom.ErrorCode;
 import com.aiquiz.aiquizs.commom.ResultUtils;
 import com.aiquiz.aiquizs.model.UserConstant;
+import com.aiquiz.aiquizs.model.dto.answer.AnswerADDRequest;
 import com.aiquiz.aiquizs.model.dto.course.CourseAddRequest;
 import com.aiquiz.aiquizs.model.entity.Course;
 import com.aiquiz.aiquizs.model.entity.CourseQuestion;
@@ -87,5 +88,27 @@ public class studentController {
             log.error("获取问题失败", e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "获取问题失败，请稍后再试");
         }
+    }
+    @PostMapping("/answer/{courseid}") //学生回答问题
+    public BaseResponse<String> answerQuestion(@RequestBody AnswerADDRequest answer) {
+        if (!Objects.equals(UserHolder.getUser().getUserRole(), UserConstant.DEFAULT_ROLE)) {
+            return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "无权限回答问题");
+        }
+        if (answer == null || answer.getCourserId() == null || answer.getStudentId() == null || answer.getChoices() == null) {
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "参数错误");
+        }
+        try {
+            int result = studentCourseService.answerQuestion(answer);
+            if (result!=-1) {
+                return ResultUtils.success("回答成功,你的得分是"+ result + "分(总分10分)");
+            } else {
+                return ResultUtils.error(ErrorCode.OPERATION_ERROR, "回答失败，请稍后再试");
+            }
+        } catch (Exception e) {
+            log.error("回答问题失败", e);
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "回答问题失败，请稍后再试");
+        }
+
+
     }
 }
