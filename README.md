@@ -19,7 +19,7 @@ ai-quiz/
 
 ## 2. 配置数据库
 
-     创建数据库（如：aiquiz）并执行 sql/schema.sql脚本导入表结构。
+     创建数据库（如：aiquiz）并执行 /.idea/sql/schema.sql脚本导入表结构。
 修改 application.yml 数据库配置：
 
 yml文件
