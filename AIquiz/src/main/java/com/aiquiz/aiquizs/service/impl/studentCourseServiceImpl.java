@@ -2,23 +2,93 @@ package com.aiquiz.aiquizs.service.impl;
 
 import com.aiquiz.aiquizs.mapper.CourseMapper;
 import com.aiquiz.aiquizs.mapper.studentcourseMapper;
-import com.aiquiz.aiquizs.model.entity.Course;
-import com.aiquiz.aiquizs.model.entity.StudentCourse;
+import com.aiquiz.aiquizs.model.dto.answer.AnswerADDRequest;
+import com.aiquiz.aiquizs.model.entity.*;
+import com.aiquiz.aiquizs.service.AnswerService;
+import com.aiquiz.aiquizs.service.CourseQuestionService;
 import com.aiquiz.aiquizs.service.StudentCourseService;
 import com.aiquiz.aiquizs.utils.UserHolder;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
+import org.json.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
 public class studentCourseServiceImpl extends ServiceImpl<studentcourseMapper, StudentCourse> implements StudentCourseService {
     @Autowired
     private CourseMapper courseMapper;
+    @Autowired
+    private CourseQuestionService courseQuestionService;
+    @Autowired
+    private AnswerService answerService;
+    @Override
+    public int answerQuestion(AnswerADDRequest answer) throws JsonProcessingException {
+        //查询学生是否在课程中
+        QueryWrapper<StudentCourse> wrapper = new QueryWrapper<>();
+        wrapper.eq("studentid", answer.getStudentId())
+                .eq("courseid", answer.getCourserId())
+                .eq("status", "approved"); // 确保学生在课程中且状态为active
+        long count = this.baseMapper.selectCount(wrapper);
+        if (count == 0) {
+            log.error("学生未加入课程或状态不正确，无法回答问题，课程ID: {}", answer.getCourserId());
+            return -1; // 学生未加入课程或状态不正确，返回false
+        }
+        // 如果学生在课程中，执行回答问题的逻辑
+        //查询课程题目是否存在
+        QueryWrapper<CourseQuestion> questionWrapper = new QueryWrapper<>();
+        wrapper.eq("id", answer.getQuestionId());
+        CourseQuestion courseQuestion = courseQuestionService.getOne(questionWrapper);
+        if (courseQuestion == null) {
+            log.error("课程题目不存在，ID: {}", answer.getQuestionId());
+            return -1; // 课程题目不存在，返回false
+        }
+        JSONArray jsonArray = new JSONArray(courseQuestion.getQuestion());
+
+        // 使用 Jackson 把 jsonArray.toString() 转成 List<QuestionContentDTO>
+        ObjectMapper mapper = new ObjectMapper();
+        List<QuestionContentDTO> list = mapper.readValue(
+                jsonArray.toString(),
+                new TypeReference<List<QuestionContentDTO>>() {}
+        );
+        // 检查答案是否正确
+        AtomicInteger score= new AtomicInteger();
+        if(list.size()==answer.getChoices().size())
+        {
+            for (int i=0;i<list.size();i++)
+            {
+                int finalI = i;
+                list.get(i).getOptions().forEach(option -> {
+                    if (Objects.equals(option.getKey(), answer.getChoices().get(finalI)) && option.getScore()==1) {
+                        score.getAndIncrement();
+                    }
+                });
+            }
+        }
+        //将答案存入数据库
+        Answer answerEntity = new Answer();
+        answerEntity.setStudentId(answer.getStudentId());
+        answerEntity.setCourseId(answer.getCourserId());
+        answerEntity.setQuestionId(answer.getQuestionId());
+        answerEntity.setChoices(answer.getChoices().toString());
+        answerEntity.setScore(score.get());
+         answerService.save(answerEntity);
+
+
+        return score.get();
+
+
+    }
 
     @Override
     public boolean quitCourse(Long id) {

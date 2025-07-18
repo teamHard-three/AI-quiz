@@ -55,9 +55,13 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     @Override
     public CourseQuestion getQuestion(Long courseid) {
         // 查询课程问题
-        CourseQuestion courseQuestion = courseQuestionService.getOne(new LambdaQueryWrapper<CourseQuestion>()
-                .eq(CourseQuestion::getCourseId, courseid)); // 获取最新的课程内容) // 获取最新的课程内容
-        //将字符串解析成json
+        CourseQuestion courseQuestion = courseQuestionService.getOne(
+                new LambdaQueryWrapper<CourseQuestion>()
+                        .eq(CourseQuestion::getCourseId, courseid)
+                        .orderByDesc(CourseQuestion::getUpdateTime)
+                        .last("LIMIT 1")
+        );
+
 
         return courseQuestion;
     }
