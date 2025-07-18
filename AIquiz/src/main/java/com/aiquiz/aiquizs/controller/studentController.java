@@ -7,6 +7,7 @@ import com.aiquiz.aiquizs.commom.ResultUtils;
 import com.aiquiz.aiquizs.model.UserConstant;
 import com.aiquiz.aiquizs.model.dto.course.CourseAddRequest;
 import com.aiquiz.aiquizs.model.entity.Course;
+import com.aiquiz.aiquizs.model.entity.CourseQuestion;
 import com.aiquiz.aiquizs.model.vo.CourseVO;
 import com.aiquiz.aiquizs.service.CourseService;
 import com.aiquiz.aiquizs.service.StudentCourseService;
@@ -68,6 +69,23 @@ public class studentController {
             return ResultUtils.success("成功退出课程");
         } else {
             return ResultUtils.error(ErrorCode.OPERATION_ERROR, "退出课程失败，请稍后再试");
+        }
+    }
+    @GetMapping("/showQuestion/{courseid}") //查看问题
+    public BaseResponse<CourseQuestion> showQuestion(@PathVariable Long courseid) {
+        if (!Objects.equals(UserHolder.getUser().getUserRole(), UserConstant.DEFAULT_ROLE)) {
+            return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, "无权限查看问题");
+        }
+
+        if (courseid == null || courseid <= 0) {
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "课程ID无效");
+        }
+        try {
+            CourseQuestion courseQuestion = courseService.getQuestion(courseid);
+            return ResultUtils.success(courseQuestion);
+        } catch (Exception e) {
+            log.error("获取问题失败", e);
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "获取问题失败，请稍后再试");
         }
     }
 }

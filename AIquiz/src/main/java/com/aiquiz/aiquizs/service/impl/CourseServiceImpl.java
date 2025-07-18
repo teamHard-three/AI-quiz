@@ -7,10 +7,14 @@ import com.aiquiz.aiquizs.mapper.UserMapper;
 import com.aiquiz.aiquizs.model.UserConstant;
 import com.aiquiz.aiquizs.model.dto.course.CourseAddRequest;
 import com.aiquiz.aiquizs.model.entity.Course;
+import com.aiquiz.aiquizs.model.entity.CourseContent;
+import com.aiquiz.aiquizs.model.entity.CourseQuestion;
 import com.aiquiz.aiquizs.model.entity.User;
 import com.aiquiz.aiquizs.model.vo.CourseVO;
+import com.aiquiz.aiquizs.service.CourseQuestionService;
 import com.aiquiz.aiquizs.service.CourseService;
 import com.aiquiz.aiquizs.utils.UserHolder;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +32,8 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     private UserMapper userMapper;
     @Autowired
     private CourseMapper courseMapper;
+    @Autowired
+    private CourseQuestionService courseQuestionService;
 
     @Override
     public List<CourseVO> getstudentCourseList(Long id) {
@@ -44,6 +50,16 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         } else {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限查看课程");
         }
+    }
+
+    @Override
+    public CourseQuestion getQuestion(Long courseid) {
+        // 查询课程问题
+        CourseQuestion courseQuestion = courseQuestionService.getOne(new LambdaQueryWrapper<CourseQuestion>()
+                .eq(CourseQuestion::getCourseId, courseid)); // 获取最新的课程内容) // 获取最新的课程内容
+        //将字符串解析成json
+
+        return courseQuestion;
     }
 
     @Override
