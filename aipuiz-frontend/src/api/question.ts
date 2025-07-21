@@ -14,12 +14,12 @@ export function getQuestionList(courseId: number | string) {
 
 // 3. 检查课程是否存在题目
 export function checkCourseContent(courseId: number | string) {
-  return axios.get(`/api/getCourseContent/${courseId}`);
+  return axios.get(`/api/teachercourse/getCourseContent/${courseId}`);
 }
 
 // 4. 查看课程题目（学生/普通用户）
 export function showQuestion(courseId: number | string) {
-  return axios.get(`/api/showQuestion/${courseId}`);
+  return axios.get(`/api/studentcourse/showQuestion/${courseId}`);
 }
 
 // 5. 学生回答问题
@@ -29,5 +29,5 @@ export function answerQuestion(courseId: number | string, data: {
   questionId: number | string;
   choices: string[];
 }) {
-  return axios.post(`/api/answer/${courseId}`, data);
+  return axios.post(`/api/studentcourse/answer/${courseId}`, data);
 }
