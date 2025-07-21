@@ -43,22 +43,6 @@
         <template v-else-if="user.userRole === 'teacher'">
           <h2>欢迎老师：{{ user.userAccount }}</h2>
           <p>这里是老师专属主页内容。</p>
-          <div style="margin-bottom: 20px;">
-            <h3>上传课程内容</h3>
-            <select v-model="selectedCourseId" required>
-              <option value="" disabled>请选择课程</option>
-              <option v-for="course in teacherCourseList" :key="course.id" :value="course.id">
-                {{ course.name }}
-              </option>
-            </select>
-            <input type="file" @change="onFileChange" accept=".pdf,.ppt,.pptx" />
-            <button :disabled="uploadLoading" @click="handleUpload">
-              {{ uploadLoading ? '上传中...' : '上传' }}
-            </button>
-            <div v-if="uploadLoading">
-              上传进度：{{ uploadProgress }}%
-            </div>
-          </div>
           <div>
             <h3>我的课程列表</h3>
             <table class="course-table" v-if="teacherCourseList.length">
@@ -67,7 +51,7 @@
                   <th>课程ID</th>
                   <th>课程名称</th>
                   <th>课程描述</th>
-                  <th>创建时间</th>
+                  <th>操作</th> 
                 </tr>
               </thead>
               <tbody>
@@ -75,7 +59,41 @@
                   <td>{{ course.id }}</td>
                   <td>{{ course.name }}</td>
                   <td>{{ course.description }}</td>
-                  <td>{{ course.createTime }}</td>
+                  <td>
+                    <input type="file" :id="'file-'+course.id" style="display:none" @change="onFileChange($event, course.id)" accept=".pdf,.ppt,.pptx" />
+
+                    <!-- Case 1: Questions already generated -->
+                    <button
+                      v-if="uploadStatusMap[course.id] === 'generated'"
+                      class="generated-btn"
+                      disabled
+                    >
+                      已生成题目
+                    </button>
+
+                    <!-- Case 2: Uploaded, ready to create questions -->
+                    <button
+                      v-else-if="uploadStatusMap[course.id] === 'uploaded'"
+                      class="create-question-btn"
+                      @click="handleCreateQuestion(course.id)"
+                    >
+                      创建题目
+                    </button>
+
+                    <!-- Case 3: Default, show upload button -->
+                    <button
+                      v-else
+                      class="upload-btn"
+                      @click="triggerFileInput(course.id)"
+                      :disabled="uploadLoading && uploadingCourseId === course.id"
+                    >
+                      上传
+                    </button>
+
+                    <span v-if="uploadLoading && uploadingCourseId === course.id">
+                      上传中... {{ uploadProgress }}%
+                    </span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -214,14 +232,8 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { addCourse } from '@/api/course'
 import { getTeacherList } from '@/api/user'
-import { getCourseList } from '@/api/course'
-import { updateCourse } from '@/api/course'
-import { deleteCourse } from '@/api/course'
-import { getStudentCourseList } from '@/api/course'
-import { joinCourse } from '@/api/course'
-import { getJoinCourseRequestList } from '@/api/course'
-import { acceptJoinRequest } from '@/api/course'
-import { uploadCourseContent, getTeacherCourseList, getCourseById } from '@/api/course'
+import { getCourseList, getCourseById, updateCourse, deleteCourse, getStudentCourseList, joinCourse, getJoinCourseRequestList, acceptJoinRequest, uploadCourseContent, getTeacherCourseList } from '@/api/course'
+import { createQuestion, checkCourseContent } from '@/api/question'
 
 const user = ref()
 
@@ -463,58 +475,115 @@ const handleRejectJoin = async (requestId: string | number) => {
 // 教师课程列表
 const teacherCourseList = ref<any[]>([])
 
-// 上传相关
-const uploadLoading = ref(false)
-const uploadProgress = ref(0)
-const selectedFile = ref<File | null>(null)
-const selectedCourseId = ref<string | number>('')
-
-const onFileChange = (e: Event) => {
-  const files = (e.target as HTMLInputElement).files
-  if (files && files.length > 0) {
-    selectedFile.value = files[0]
-  } else {
-    selectedFile.value = null
-  }
-}
-
-// 获取教师课程列表
+//获取教师课程列表
 const fetchTeacherCourseList = async () => {
   if (!user.value) return
   try {
     const res = await getTeacherCourseList(user.value.id)
     if (res.data.code === 0) {
       teacherCourseList.value = res.data.data
+      // After getting the list, check each course for existing questions
+      for (const course of teacherCourseList.value) {
+        try {
+          const questionRes = await checkCourseContent(course.id);
+          if (questionRes.data.code === 0 && Array.isArray(questionRes.data.data) && questionRes.data.data.length > 0) {
+             uploadStatusMap.value[course.id] = 'generated';
+          }
+        } catch (e) {
+          console.error(`Failed to check questions for course ${course.id}`, e);
+        }
+      }
     }
   } catch (e) {
     alert('获取课程列表失败')
   }
 }
 
-// 上传课程内容
-const handleUpload = async () => {
-  if (!selectedFile.value || !selectedCourseId.value) {
-    alert('请选择课程和文件')
+// 上传相关
+const uploadLoading = ref(false)
+const uploadProgress = ref(0)
+const selectedFile = ref<File | null>(null)
+const uploadingCourseId = ref<string | number>('')
+const fakeProgressTimer = ref<number | null>(null)
+const fakeProgressValue = ref(0)
+
+// 每门课程上传状态
+const uploadStatusMap = ref<Record<string, 'idle' | 'uploading' | 'uploaded' | 'generated'>>({})
+
+const triggerFileInput = (courseId: string | number) => {
+  const input = document.getElementById('file-' + courseId) as HTMLInputElement
+  if (input) input.click()
+}
+
+const onFileChange = (e: Event, courseId: string | number) => {
+  const files = (e.target as HTMLInputElement).files
+  if (files && files.length > 0) {
+    selectedFile.value = files[0]
+    uploadingCourseId.value = courseId
+    handleUpload(courseId)
+  }
+}
+
+const handleUpload = async (courseId: string | number) => {
+  if (!selectedFile.value || !courseId) {
+    alert('请选择文件')
     return
   }
   uploadLoading.value = true
   uploadProgress.value = 0
+  fakeProgressValue.value = 0
+  uploadStatusMap.value[courseId] = 'uploading'
+
+  // 启动假进度
+  if (fakeProgressTimer.value) clearInterval(fakeProgressTimer.value)
+  fakeProgressTimer.value = window.setInterval(() => {
+    if (fakeProgressValue.value < 98) {
+      fakeProgressValue.value += 100 / 60
+      uploadProgress.value = Math.floor(fakeProgressValue.value)
+    }
+  }, 1000)
+
   try {
-    await uploadCourseContent(selectedFile.value, selectedCourseId.value, {
+    await uploadCourseContent(selectedFile.value, courseId, {
       onUploadProgress: (progressEvent: ProgressEvent) => {
         if (progressEvent.lengthComputable) {
-          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          uploadProgress.value = percent
+          fakeProgressValue.value = percent
         }
       }
     })
+    uploadProgress.value = 100
+    fakeProgressValue.value = 100
     alert('上传成功')
     selectedFile.value = null
-    selectedCourseId.value = ''
+    uploadingCourseId.value = ''
+    uploadStatusMap.value[courseId] = 'uploaded'
   } catch (e) {
     alert('上传失败')
+    uploadStatusMap.value[courseId] = 'idle'
   } finally {
     uploadLoading.value = false
+    if (fakeProgressTimer.value) {
+      clearInterval(fakeProgressTimer.value)
+      fakeProgressTimer.value = null
+    }
     uploadProgress.value = 0
+    fakeProgressValue.value = 0
+  }
+}
+
+const handleCreateQuestion = async (courseId: string | number) => {
+  try {
+    const res = await createQuestion(1, courseId)
+    if (res.data.code === 0) {
+      alert('题目创建成功！')
+      uploadStatusMap.value[courseId] = 'generated'
+    } else {
+      alert(res.data.message || '题目创建失败')
+    }
+  } catch (e) {
+    alert('题目创建失败')
   }
 }
 
@@ -534,6 +603,7 @@ const showCourseDetail = async (courseId: string | number) => {
     alert('获取课程详情失败')
   }
 }
+
 </script>
 
 <style scoped>
@@ -772,6 +842,47 @@ button:hover {
 
 input[placeholder], select {
   font-size: 1em;
+}
+
+.upload-btn {
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 22px;
+  font-size: 1em;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(64,158,255,0.18);
+}
+.upload-btn:hover {
+  background: linear-gradient(90deg, #357ae8 0%, #409eff 100%);
+}
+.create-question-btn {
+  background: linear-gradient(90deg, #67c23a 0%, #b3e19d 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 22px;
+  font-size: 1em;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(103,194,58,0.18);
+}
+.create-question-btn:hover {
+  background: linear-gradient(90deg, #529b2e 0%, #67c23a 100%);
+}
+
+.generated-btn {
+  background: #909399; /* A gray color for disabled state */
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 22px;
+  font-size: 1em;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {
