@@ -14,6 +14,8 @@
                 <th>课程名称</th>
                 <th>课程描述</th>
                 <th>选课状态</th>
+                <th>操作</th>
+                <th>反馈</th>
               </tr>
             </thead>
             <tbody>
@@ -33,6 +35,24 @@
                   <template v-else>
                     {{ statusText(course.status) }}
                   </template>
+                </td>
+                <td>
+                  <button
+                    v-if="quizStatuses[course.id] && quizStatuses[course.id].status === 'answered'"
+                    class="answered-btn"
+                    disabled
+                  >
+                    已回答，得分：{{ quizStatuses[course.id].score }}
+                  </button>
+                  <button
+                    v-else-if="course.status === 'approved' || course.status === 'APPROVED'"
+                    @click="goToAnswerPage(course.id, course.name)"
+                  >
+                    查看课程题目
+                  </button>
+                </td>
+                <td>
+                  <button @click="openFeedbackModal(course.id)">反馈</button>
                 </td>
               </tr>
             </tbody>
@@ -225,17 +245,76 @@
         <button @click="courseDetailVisible = false">关闭</button>
       </div>
     </div>
+    <!-- Feedback Modal -->
+    <div v-if="isFeedbackModalVisible" class="feedback-modal-overlay">
+      <div class="feedback-modal">
+        <h3>课程反馈</h3>
+        <textarea
+          v-model="feedbackContent"
+          placeholder="请输入您的反馈..."
+          rows="5"
+        ></textarea>
+        <div class="modal-actions">
+          <button @click="handleFeedbackSubmit" :disabled="isSubmittingFeedback">
+            {{ isSubmittingFeedback ? '提交中...' : '提交' }}
+          </button>
+          <button @click="isFeedbackModalVisible = false" class="cancel-btn">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Answer Modal -->
+    <div v-if="isAnswerModalVisible" class="answer-modal-overlay">
+      <div class="answer-card">
+        <h2 class="page-title">课程：{{ currentCourseName }} - 在线答题</h2>
+        <button @click="isAnswerModalVisible = false" class="close-btn">&times;</button>
+        <div v-if="questions.length > 0">
+          <div v-for="(question, index) in questions" :key="index" class="question-block">
+            <p class="question-title">{{ index + 1 }}. {{ question.title }}</p>
+            <div class="options-list">
+              <label v-for="option in question.options" :key="option.key" class="option-label">
+                <input type="radio" :name="'question-' + index" :value="option.key" v-model="answers[index]">
+                <span class="option-key">{{ option.key }}:</span>
+                <span class="option-value">{{ option.value }}</span>
+              </label>
+            </div>
+          </div>
+          <button @click="submitAnswers" class="submit-btn" :disabled="isSubmittingAnswers">
+            {{ isSubmittingAnswers ? '提交中...' : '提交答案' }}
+          </button>
+        </div>
+        <div v-else class="loading-text">
+          <p v-if="isLoadingQuestions">题目加载中...</p>
+          <p v-else>该课程暂无题目。</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onActivated } from 'vue'
+import { useRouter } from 'vue-router'
 import { addCourse } from '@/api/course'
 import { getTeacherList } from '@/api/user'
 import { getCourseList, getCourseById, updateCourse, deleteCourse, getStudentCourseList, joinCourse, getJoinCourseRequestList, acceptJoinRequest, uploadCourseContent, getTeacherCourseList } from '@/api/course'
-import { createQuestion, checkCourseContent } from '@/api/question'
+import { createQuestion, checkCourseContent, showQuestion, answerQuestion } from '@/api/question'
+import { submitFeedback } from '@/api/feedback'
 
+const router = useRouter()
 const user = ref()
+
+// State for quiz statuses - RE-ADD THIS
+const quizStatuses = ref<Record<string, { status: string; score: string }>>({})
+
+const updateQuizStatuses = () => {
+  studentCourseList.value.forEach(course => {
+    const status = localStorage.getItem(`quizStatus_${course.id}`)
+    if (status) {
+      quizStatuses.value[course.id] = JSON.parse(status)
+    }
+  })
+}
 
 function updateUser() {
   const u = localStorage.getItem('user')
@@ -352,6 +431,14 @@ const fetchStudentCourseList = async () => {
     alert('获取学生课程列表失败')
   }
 }
+
+onActivated(async () => {
+  if (user.value && user.value.userRole === 'student') {
+    await fetchStudentCourseList()
+  }
+})
+
+watch(studentCourseList, updateQuizStatuses)
 
 const allJoinRequests = ref<any[]>([])
 
@@ -587,6 +674,90 @@ const handleCreateQuestion = async (courseId: string | number) => {
   }
 }
 
+// --- Answer Modal State ---
+const isAnswerModalVisible = ref(false)
+const isLoadingQuestions = ref(false)
+const currentCourseId = ref<string | null>(null)
+const currentCourseName = ref('')
+const questionData = ref<any>(null)
+const questions = ref<any[]>([]);
+const answers = ref<string[]>([]);
+const isSubmittingAnswers = ref(false);
+
+const openAnswerModal = async (courseId: string, courseName: string) => {
+  isAnswerModalVisible.value = true
+  isLoadingQuestions.value = true
+  currentCourseId.value = courseId
+  currentCourseName.value = courseName
+  questions.value = []
+  answers.value = []
+
+  try {
+    const res = await showQuestion(courseId);
+    if (res.data.code === 0 && res.data.data) {
+      questionData.value = res.data.data;
+      if (typeof res.data.data.question === 'string') {
+        questions.value = JSON.parse(res.data.data.question);
+        answers.value = new Array(questions.value.length).fill(null);
+      }
+    } else {
+      alert(res.data.message || '获取题目失败');
+    }
+  } catch (e) {
+    alert('请求题目失败');
+  } finally {
+    isLoadingQuestions.value = false
+  }
+}
+
+const submitAnswers = async () => {
+  const unfilledQuestions = answers.value.map((answer, index) => answer === null ? index + 1 : -1).filter(index => index !== -1);
+  if (unfilledQuestions.length > 0) {
+    alert(`第 ${unfilledQuestions.join(', ')} 题尚未回答！`);
+    return;
+  }
+
+  isSubmittingAnswers.value = true;
+  try {
+    const payload = {
+      courserId: currentCourseId.value!,
+      studentId: user.value.id,
+      questionId: questionData.value.id,
+      choices: answers.value,
+    };
+    const res = await answerQuestion(currentCourseId.value!, payload);
+    if (res.data.code === 0) {
+      const resultMessage = res.data.data || '提交成功！';
+      alert(resultMessage);
+      
+      const scoreMatch = resultMessage.match(/你的得分是(\d+)分/);
+      const score = scoreMatch ? scoreMatch[1] : 'N/A';
+      const totalScoreMatch = resultMessage.match(/总分(\d+)分/);
+      const totalScore = totalScoreMatch ? totalScoreMatch[1] : 'N/A';
+
+      const submissionStatus = { status: 'answered', score: `${score}/${totalScore}` };
+      localStorage.setItem(`quizStatus_${currentCourseId.value!}`, JSON.stringify(submissionStatus));
+      
+      // Immediately update UI
+      quizStatuses.value[currentCourseId.value!] = submissionStatus;
+
+      isAnswerModalVisible.value = false;
+    } else {
+      alert(res.data.message || '提交失败');
+    }
+  } catch (e) {
+    console.error("提交答案请求失败:", e);
+    alert('提交答案请求失败，详情请查看控制台。');
+  } finally {
+    isSubmittingAnswers.value = false;
+  }
+};
+
+// Replace goToAnswerPage with this
+const goToAnswerPage = (courseId: string, courseName: string) => {
+  openAnswerModal(courseId, courseName)
+}
+
 const courseDetailVisible = ref(false)
 const courseDetail = ref<any>(null)
 
@@ -601,6 +772,41 @@ const showCourseDetail = async (courseId: string | number) => {
     }
   } catch (e) {
     alert('获取课程详情失败')
+  }
+}
+
+const isFeedbackModalVisible = ref(false)
+const feedbackContent = ref('')
+const currentFeedbackCourseId = ref<string | number | null>(null)
+const isSubmittingFeedback = ref(false)
+
+const openFeedbackModal = (courseId: string | number) => {
+  currentFeedbackCourseId.value = courseId
+  feedbackContent.value = ''
+  isFeedbackModalVisible.value = true
+}
+
+const handleFeedbackSubmit = async () => {
+  if (!feedbackContent.value.trim()) {
+    alert('反馈内容不能为空！')
+    return
+  }
+  isSubmittingFeedback.value = true
+  try {
+    const res = await submitFeedback({
+      courseId: currentFeedbackCourseId.value!,
+      content: feedbackContent.value
+    })
+    if (res.data.code === 0) {
+      alert('反馈提交成功！')
+      isFeedbackModalVisible.value = false
+    } else {
+      alert(res.data.message || '提交失败')
+    }
+  } catch (error) {
+    alert('提交反馈请求失败')
+  } finally {
+    isSubmittingFeedback.value = false
   }
 }
 
@@ -885,6 +1091,15 @@ input[placeholder], select {
   cursor: not-allowed;
 }
 
+.answered-btn {
+  background: #909399;
+  color: #fff;
+  cursor: not-allowed;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+}
+
 @media (max-width: 900px) {
   .card {
     padding: 16px 8px;
@@ -914,5 +1129,174 @@ input[placeholder], select {
   border-radius: 8px;
   min-width: 320px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+.feedback-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.feedback-modal {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.feedback-modal h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.feedback-modal textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+  font-size: 1em;
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.modal-actions .cancel-btn {
+  background-color: #f0f0f0;
+}
+
+/* --- Answer Modal Styles (copied and adapted from AnswerPage.vue) --- */
+.answer-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.answer-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 30px 40px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 2.5em;
+  color: #aaa;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.page-title {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.loading-text {
+  font-size: 1.2em;
+  color: #555;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.question-block {
+  margin-bottom: 25px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 20px;
+}
+
+.question-title {
+  font-size: 1.2em;
+  color: #444;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+.option-label:hover {
+  background-color: #f7f7f7;
+}
+.option-label input[type="radio"] {
+  margin-right: 12px;
+  transform: scale(1.2);
+}
+.option-key {
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.submit-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  font-size: 1.2em;
+  color: #fff;
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 30px;
+  transition: all 0.3s;
+}
+.submit-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 15px rgba(64, 158, 255, 0.3);
+}
+.submit-btn:disabled {
+  background: #c0c4cc;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 </style>

@@ -4,6 +4,7 @@ import homePage from '@/views/homePage.vue'
 import AboutPage from '@/views/aboutPage.vue'
 import LoginPage from '@/views/loginPage.vue'
 import RegisterPage from '@/views/registerPage.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
