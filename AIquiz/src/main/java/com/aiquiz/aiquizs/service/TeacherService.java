@@ -1,5 +1,7 @@
 package com.aiquiz.aiquizs.service;
 
+import com.aiquiz.aiquizs.model.dto.answer.Answerexit;
+import com.aiquiz.aiquizs.model.dto.answer.message;
 import com.aiquiz.aiquizs.model.entity.CourseContent;
 import com.aiquiz.aiquizs.model.entity.CourseQuestion;
 import com.aiquiz.aiquizs.model.vo.CourseVO;
@@ -16,7 +18,9 @@ public interface TeacherService extends IService<CourseContent> {
 
     List<CourseVO> getCourseList(Long id);
 
-    Boolean createQuestion(String page, Long courseid);
+    CourseQuestion createQuestion(String page, Long courseid);
 
-    CourseQuestion getQuestion(Long courseId) throws IOException;
+    CourseQuestion getQuestion(message me,Long courseid) throws IOException;
+
+    Answerexit isAnswerexit(Long courseId);
 }
