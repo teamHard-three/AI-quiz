@@ -1,6 +1,8 @@
 package com.aiquiz.aiquizs.service.impl;
 
 import cn.hutool.json.JSONUtil;
+import com.aiquiz.aiquizs.model.dto.answer.Answerexit;
+import com.aiquiz.aiquizs.model.dto.answer.message;
 import com.aiquiz.aiquizs.model.entity.CourseQuestion;
 import com.aiquiz.aiquizs.service.CourseQuestionService;
 import org.json.JSONArray;
@@ -42,6 +44,24 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
     private CourseService courseService;
     @Autowired
     private CourseQuestionService courseQuestionService;
+
+    @Override
+    public Answerexit isAnswerexit(Long courseId) {
+        // 根据课程ID查询题目只有一个
+        CourseContent courseContent = this.getOne(new LambdaQueryWrapper<CourseContent>()
+                .eq(CourseContent::getCourseid, courseId)
+                .eq(CourseContent::getIsDelete, 0)); // 不查已删除
+        if (courseContent != null) {
+            Answerexit answerexit = new Answerexit();
+            answerexit.setCourserId(courseId);
+            return answerexit;
+        }
+        Answerexit answerexit = new Answerexit();
+        answerexit.setCourserId((long) -1);
+        answerexit.setPage(0);
+        return answerexit;
+    }
+
     private ExecutorService threadPool = new ThreadPoolExecutor(
             10,                      // corePoolSize 核心线程数
             15,                      // maximumPoolSize 最大线程数
@@ -88,7 +108,7 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
     }
 
     @Override
-    public CourseQuestion getQuestion(Long courseId) throws IOException {
+    public CourseQuestion getQuestion(message me,Long courseId) throws IOException {
         // 根据课程ID查询题目列表
         List<CourseQuestion> questions = courseQuestionService.list(new LambdaQueryWrapper<CourseQuestion>()
                 .eq(CourseQuestion::getCourseId, courseId)
@@ -97,8 +117,8 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
         for ( CourseQuestion courseQuestion : questions ) {
             question += courseQuestion.getQuestion() + "\n";
         }
-        String GENERATE_QUESTION_SYSTEM_MESSAGE = "你是一位严谨的出题专家，我会给你如下信息：\n" +
-                question +
+        String GENERATE_QUESTION_SYSTEM_MESSAGE = "你是一位严谨的出题专家，我会给你如下题目：\n" +
+                question +"这是我的题目，同学们回答完题目后给出如下反馈"+me+"请你根据学生的反馈重新出10道题目，要求不偏离原题目所覆盖知识点"+
                 "请你根据上述信息,如果你无法理解上述信息请返回空json，按照以下步骤来出题：\n" +
                 "1. 要求：请你严格按照在所有的题目中挑选出10道有难度有深度，符合教师教学应提问的,不要重复，十道问题\n" +
                 "2. 严格按照下面的 json 格式输出题目和选项\n" +
@@ -133,6 +153,8 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
                 .url(url)
                 .addHeader("Authorization", "Bearer " + apiKey)
                 .addHeader("Content-Type", "application/json")
+                .addHeader("HTTP-Referer", "test.example.com")
+
                 .post(RequestBody.create(body.toString(), MediaType.parse("application/json")))
                 .build();
 
@@ -155,12 +177,12 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
                 courseQuestionService.remove(new LambdaQueryWrapper<CourseQuestion>()
                         .eq(CourseQuestion::getCourseId, courseId));
                 // 保存到数据库
-                String json = answer.replace("json", "");// 去除json
+                String json =answer.replace("json", "").replace("`","");// 去除json
+
                 CourseQuestion courseQuestion = new CourseQuestion();
                 courseQuestion.setCourseId(courseId);
                 courseQuestion.setQuestion(json);  // 这里要确认字段类型是String类型
                 courseQuestionService.save(courseQuestion);
-
 
                 return courseQuestion;
             }
@@ -168,23 +190,17 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
         return new CourseQuestion();
     }
     @Override
-    public Boolean createQuestion(String page, Long courseid) {
+    public CourseQuestion createQuestion(String page, Long courseid) {
         // 根据课程ID查询课程内容
         CourseContent courseContent = this.getOne(new LambdaQueryWrapper<CourseContent>()
-                .eq(CourseContent::getCourseId, courseid)); // 获取最新的课程内容
+                .eq(CourseContent::getCourseid, courseid)); // 获取最新的课程内容
         String text = courseContent.getContent();
         if (text == null || text.isEmpty()) {
             log.error("课程内容为空，无法生成题目");
             return null;
         }
-
-        String[] pages = text.split("===== 第 \\d+ 页 =====");
-        for (int i = 0; i < pages.length; i++) {
-            final int index = i; // lambda 中不能使用非 final 的 i
-            threadPool.submit(() -> {
-        String content = pages[index];
         String GENERATE_QUESTION_SYSTEM_MESSAGE = "你是一位严谨的出题专家，我会给你如下信息：\n" +
-                content +
+                text +
                 "请你根据上述信息,如果你无法理解上述信息请返回空json，按照以下步骤来出题：\n" +
                 "1. 要求：一轮十道选择题，请根据内容,彻底理解传入信息,严格符合教师所讲知识点，有深度有广度。不要包含序号，每题的选项数为4个且只有一个唯一答案，题目不能重复\n" +
                 "2. 严格按照下面的 json 格式输出题目和选项\n" +
@@ -195,7 +211,6 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
                 "3. 检查题目是否包含序号，若包含序号则去除序号\n" +
                 "4. 返回的题目列表格式必须为 JSON 数组";
 
-        System.out.println("第 "+index+"页内容由 " + Thread.currentThread().getName() + " 处理：" + GENERATE_QUESTION_SYSTEM_MESSAGE);
 
         String url = "https://openrouter.ai/api/v1/chat/completions";
         String apiKey = AIConfigLoader.getApiKey();
@@ -237,21 +252,23 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
                         .getString("content");
 
                 System.out.println("AI回答：" + answer);
+                answer=answer.replace("json", "").replace("`","");// 去除json
 
                 // 保存到数据库
                 CourseQuestion courseQuestion = new CourseQuestion();
                 courseQuestion.setCourseId(courseid);
                 courseQuestion.setQuestion(answer);  // 这里要确认字段类型是String类型
                 courseQuestionService.save(courseQuestion);
+                System.out.println("所有页面处理完毕");
+
+                return courseQuestion;
             }
+
         } catch (IOException e) {
+            System.err.println("第 " + 1 + " 页处理异常：" + e.getMessage());
             throw new RuntimeException(e);
         }
-
-
-
-    }
-            );}return true;
+        return null;
     }
 
     private int updPDF(File file, Long courseId) throws IOException {
@@ -299,8 +316,9 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
 
         // 将结果保存到数据库或文件中
         CourseContent courseContent = new CourseContent();
-        courseContent.setCourseId(courseId);
+        courseContent.setCourseid(courseId);
         courseContent.setContent(result.toString());
+        courseContent.setPages(pageCount); // 设置页数
         // mybatisplus 存入数据库
         this.save(courseContent);
         return pageCount;
@@ -377,8 +395,9 @@ public class TeacherServiceImpl extends ServiceImpl<CourseContentMapper, CourseC
         ppt.close();
         // 将结果保存到数据库或文件中
         CourseContent courseContent = new CourseContent();
-        courseContent.setCourseId(courseId);
+        courseContent.setCourseid(courseId);
         courseContent.setContent(result.toString());
+        courseContent.setPages(pageIndex); // 设置页数
         // mybatisplus 存入数据库
         this.save(courseContent);
 

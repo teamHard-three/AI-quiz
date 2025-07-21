@@ -18,12 +18,13 @@ public class CourseContent implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @TableField("course_id")
-    private Long courseId;
+    @TableField("courseid")
+    private Long courseid;
 
     @TableField("content")
     private String content;
 
+    private int pages;
     @TableField(value = "createTime", fill = FieldFill.INSERT)
     private Date createTime;
 
