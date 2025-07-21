@@ -1,19 +1,17 @@
-<<<<<<< Updated upstream
-// ===================== 管理员接口 =====================
-
-import axios from "axios";
-=======
 import axios from 'axios';
 
 // ===================== 管理员接口 =====================
->>>>>>> Stashed changes
 
 // 添加课程
 export function addCourse(data: { name: string; description: string; teacherId: string }) {
   return axios.post('/api/admincourse/addCourse', data);
 }
 
-<<<<<<< Updated upstream
+// 查询所有教师
+export function getAllTeachers() {
+  return axios.get('/api/user/getAllteacher');
+}
+
 // 获取所有课程列表
 export function getCourseList() {
   return axios.get('/api/admincourse/getCourseList');
@@ -22,21 +20,6 @@ export function getCourseList() {
 // 获取课程详情（根据ID）
 export function getCourseById(id: string | number) {
   return axios.get(`/api/admincourse/getCourseById/${id}`);
-=======
-// 查询所有教师
-export function getAllTeachers() {
-  return axios.get('/api/user/getAllteacher');
-}
-
-// 获取所有课程列表
-export function getCourseList() {
-  return axios.get('/api/admincourse/getCourseList', null);
-}
-
-// 获取课程详情（根据ID）
-export function getCourseById(id: string ) {
-  return axios.post(`/api/admincourse/getCourseById/${id}`, null);
->>>>>>> Stashed changes
 }
 
 // 修改课程
@@ -45,11 +28,7 @@ export function updateCourse(id: string, data: { name: string; description: stri
 }
 
 // 删除课程（支持批量）
-<<<<<<< Updated upstream
-export function deleteCourse(ids: number[]) {
-=======
 export function deleteCourse(ids: string[]) {
->>>>>>> Stashed changes
   return axios.get(`/api/admincourse/deleteCourse`, {
     params: { ids: ids.join(',') }
   });
@@ -61,11 +40,7 @@ export function getJoinCourseRequestList(courseId: string | number) {
 }
 
 // 管理员接受/拒绝学生加入课程的请求
-<<<<<<< Updated upstream
-export function acceptJoinRequest(requestId: string | number, status: 'ACCEPTED' | 'REJECTED') {
-=======
 export function acceptJoinRequest(requestId: string | number, status: 'APPROVED' | 'REJECTED') {
->>>>>>> Stashed changes
   return axios.get(`/api/admincourse/acceptJoinRequest/${requestId}?status=${status}`);
 }
 
@@ -83,12 +58,6 @@ export function joinCourse(courseId: string | number) {
 
 // ===================== 教师接口 =====================
 
-<<<<<<< Updated upstream
-// 查询所有教师
-export function getAllTeachers() {
-  return axios.get('/api/user/getAllteacher');
-}
-
 // 教师上传课程内容
 export function uploadCourseContent(file: File, courseId: string | number) {
   const formData = new FormData();
@@ -103,6 +72,3 @@ export function uploadCourseContent(file: File, courseId: string | number) {
 export function getTeacherCourseList(teacherId: string | number) {
   return axios.get(`/api/teachercourse/getCourseList/${teacherId}`);
 }
-
-=======
->>>>>>> Stashed changes

@@ -8,12 +8,14 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="demo8" />
+        <module name="AIquiz" />
         <module name="AIquizs" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="AIquiz" options="-parameters" />
       <module name="AIquizs" options="-parameters" />
       <module name="demo8" options="-parameters" />
     </option>
