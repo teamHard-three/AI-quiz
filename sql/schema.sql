@@ -101,3 +101,21 @@ create table aiquiz.user
     isDelete     tinyint(1)  default 0                 null comment '是否删除 0-未删 1-已删'
 )
     comment '用户表';
+create table aiquiz.feedback(
+                                id         bigint auto_increment primary key comment '主键ID',
+                                courseId   bigint not null comment '课程ID，关联 course 表',
+                                studentId  bigint not null comment '学生ID，关联 user 表',
+                                content    text   not null comment '反馈内容',
+                                createTime datetime default CURRENT_TIMESTAMP comment '创建时间',
+                                isDelete   tinyint(1) default 0 comment '是否删除 0-未删 1-已删',
+
+                                constraint fk_feedback_course
+                                    foreign key (courseId)
+                                        references aiquiz.course (id)
+                                        on delete cascade,
+
+                                constraint fk_feedback_student
+                                    foreign key (studentId)
+                                        references aiquiz.user (id)
+                                        on delete cascade
+) comment '学生反馈表';
