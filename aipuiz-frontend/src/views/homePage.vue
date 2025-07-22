@@ -71,7 +71,8 @@
                   <th>课程ID</th>
                   <th>课程名称</th>
                   <th>课程描述</th>
-                  <th>操作</th> 
+                  <th>操作</th>
+                  <th>反馈</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,6 +114,10 @@
                     <span v-if="uploadLoading && uploadingCourseId === course.id">
                       上传中... {{ uploadProgress }}%
                     </span>
+                  </td>
+                  <td>
+                    <button @click="openFeedbackModal(course.id)">问题反馈</button>
+                    <button @click="openFeedbackList(course.id, course.name)">查看反馈</button>
                   </td>
                 </tr>
               </tbody>
@@ -289,6 +294,25 @@
         </div>
       </div>
     </div>
+    <!-- Feedback List Modal -->
+    <div v-if="isFeedbackListVisible" class="feedback-modal-overlay">
+      <div class="feedback-modal">
+        <h3>学生反馈列表 - {{ feedbackListCourseName }}</h3>
+        <div v-if="feedbackLoading">加载中...</div>
+        <div v-else-if="feedbackList.length === 0">暂无学生反馈</div>
+        <ul v-else style="max-height:300px;overflow:auto;padding-left:0;">
+          <li v-for="item in feedbackList" :key="item.id" style="margin-bottom:12px;list-style:none;">
+            <div><b>学生ID：</b>{{ item.studentId }}</div>
+            <div><b>内容：</b>{{ item.content }}</div>
+            <div style="color:#888;font-size:0.95em;">{{ item.createTime }}</div>
+            <hr v-if="feedbackList.length > 1" style="margin:8px 0;" />
+          </li>
+        </ul>
+        <div class="modal-actions">
+          <button @click="isFeedbackListVisible = false">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -298,8 +322,8 @@ import { useRouter } from 'vue-router'
 import { addCourse } from '@/api/course'
 import { getTeacherList } from '@/api/user'
 import { getCourseList, getCourseById, updateCourse, deleteCourse, getStudentCourseList, joinCourse, getJoinCourseRequestList, acceptJoinRequest, uploadCourseContent, getTeacherCourseList } from '@/api/course'
-import { createQuestion, checkCourseContent, showQuestion, answerQuestion } from '@/api/question'
-import { submitFeedback } from '@/api/feedback'
+import { createQuestion, checkCourseContent, showQuestion, answerQuestion , getQuestionList } from '@/api/question'
+import { getCourseFeedback, submitStudentFeedback } from '@/api/feedback'
 
 const router = useRouter()
 const user = ref()
@@ -562,6 +586,15 @@ const handleRejectJoin = async (requestId: string | number) => {
 // 教师课程列表
 const teacherCourseList = ref<any[]>([])
 
+const checkUploadedFiles = () => {
+  teacherCourseList.value.forEach(course => {
+    const file = localStorage.getItem('uploadedFile_' + course.id)
+    if (file && uploadStatusMap.value[course.id] !== 'generated') {
+      uploadStatusMap.value[course.id] = 'uploaded'
+  }
+  })
+}
+
 //获取教师课程列表
 const fetchTeacherCourseList = async () => {
   if (!user.value) return
@@ -569,17 +602,35 @@ const fetchTeacherCourseList = async () => {
     const res = await getTeacherCourseList(user.value.id)
     if (res.data.code === 0) {
       teacherCourseList.value = res.data.data
-      // After getting the list, check each course for existing questions
+      // 1. 先全部设为 idle
+      teacherCourseList.value.forEach(course => {
+        uploadStatusMap.value[course.id] = 'idle'
+      })
+      // 2. 先判断题目是否已生成
       for (const course of teacherCourseList.value) {
         try {
           const questionRes = await checkCourseContent(course.id);
-          if (questionRes.data.code === 0 && Array.isArray(questionRes.data.data) && questionRes.data.data.length > 0) {
-             uploadStatusMap.value[course.id] = 'generated';
+          if (
+            questionRes.data.code === 0 &&
+            Array.isArray(questionRes.data.data) &&
+            questionRes.data.data.length > 0
+          ) {
+            uploadStatusMap.value[course.id] = 'generated';
           }
         } catch (e) {
           console.error(`Failed to check questions for course ${course.id}`, e);
         }
       }
+      // 3. 再检查本地上传记录，但**不能覆盖 generated**
+      teacherCourseList.value.forEach(course => {
+        const file = localStorage.getItem('uploadedFile_' + course.id)
+        if (
+          file &&
+          uploadStatusMap.value[course.id] !== 'generated'
+        ) {
+          uploadStatusMap.value[course.id] = 'uploaded'
+        }
+      })
     }
   } catch (e) {
     alert('获取课程列表失败')
@@ -643,6 +694,7 @@ const handleUpload = async (courseId: string | number) => {
     uploadProgress.value = 100
     fakeProgressValue.value = 100
     alert('上传成功')
+    localStorage.setItem('uploadedFile_' + courseId, selectedFile.value.name) // 存储文件名
     selectedFile.value = null
     uploadingCourseId.value = ''
     uploadStatusMap.value[courseId] = 'uploaded'
@@ -793,20 +845,56 @@ const handleFeedbackSubmit = async () => {
   }
   isSubmittingFeedback.value = true
   try {
-    const res = await submitFeedback({
-      courseId: currentFeedbackCourseId.value!,
-      content: feedbackContent.value
-    })
-    if (res.data.code === 0) {
-      alert('反馈提交成功！')
-      isFeedbackModalVisible.value = false
-    } else {
-      alert(res.data.message || '提交失败')
+    if (user.value.userRole === 'student') {
+      const res = await submitStudentFeedback({
+        courseId: currentFeedbackCourseId.value!,
+        studentId: user.value.id,
+        content: feedbackContent.value
+      })
+      if (res.data.code === 0) {
+        alert('反馈提交成功！')
+        isFeedbackModalVisible.value = false
+      } else {
+        alert(res.data.message || '提交失败')
+      }
+    } else if (user.value.userRole === 'teacher') {
+      const res = await getQuestionList(currentFeedbackCourseId.value!, feedbackContent.value)
+      if (res.data.code === 0) {
+        alert('反馈已提交，正在重新生成题目！')
+        isFeedbackModalVisible.value = false
+      } else {
+        alert(res.data.message || '提交失败')
+      }
     }
   } catch (error) {
+    console.error("提交反馈请求失败:", error);
     alert('提交反馈请求失败')
   } finally {
     isSubmittingFeedback.value = false
+  }
+}
+
+const isFeedbackListVisible = ref(false)
+const feedbackList = ref<any[]>([])
+const feedbackLoading = ref(false)
+const feedbackListCourseName = ref('')
+
+const openFeedbackList = async (courseId: string | number, courseName: string) => {
+  isFeedbackListVisible.value = true
+  feedbackList.value = []
+  feedbackLoading.value = true
+  feedbackListCourseName.value = courseName
+  try {
+    const res = await getCourseFeedback(courseId)
+    if (res.data.code === 0 && Array.isArray(res.data.data)) {
+      feedbackList.value = res.data.data
+    } else {
+      feedbackList.value = []
+    }
+  } catch (e) {
+    feedbackList.value = []
+  } finally {
+    feedbackLoading.value = false
   }
 }
 

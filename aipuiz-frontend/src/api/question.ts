@@ -7,9 +7,9 @@ export function createQuestion(page: number, courseId: number | string) {
   });
 }
 
-// 2. 根据课程ID获取题目列表
-export function getQuestionList(courseId: number | string) {
-  return axios.get(`/api/teachercourse/getQuestion/${courseId}`);
+// 2. 根据课程ID获取题目列表（教师可附带反馈触发重生成）
+export function getQuestionList(courseId: number | string, exit: string) {
+  return axios.post(`/api/teachercourse/getQuestion/${courseId}`, { exit });
 }
 
 // 3. 检查课程是否存在题目
