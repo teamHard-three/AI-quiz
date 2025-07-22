@@ -29,7 +29,7 @@
                     <button @click="handleSelectCourse(course.id)">选择</button>
                   </template>
                   <template v-else-if="course.status === 'rejected' || course.status === 'REJECTED'">
-                    已拒绝
+                    <span>已拒绝</span>
                     <button @click="handleSelectCourse(course.id)">重新申请</button>
                   </template>
                   <template v-else>
@@ -1100,6 +1100,36 @@ input[placeholder], select {
   padding: 6px 12px;
 }
 
+/* 选课状态列的按钮（如“选择”、“重新申请”），蓝色渐变 */
+.course-table td:nth-child(4) button {
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+}
+
+/* 操作列的按钮（如查看课程题目） */
+.course-table td:nth-child(5) button {
+  background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
+  color: #222;
+}
+
+/* 反馈列的按钮 */
+.course-table td:nth-child(6) button {
+  background: linear-gradient(90deg,rgb(54, 236, 48) 0%,rgb(26, 253, 18) 100%);
+  color: #222;
+}
+
+/* 禁用按钮 */
+button[disabled] {
+  background: #909399 !important;
+  color: #fff !important;
+  cursor: not-allowed;
+}
+
+/* 让同一单元格内多个按钮有间距 */
+.course-table td button {
+  margin-left: 8px;
+  /* 你也可以加上 margin-right: 8px; 让两边都有间距 */
+}
+
 @media (max-width: 900px) {
   .card {
     padding: 16px 8px;
@@ -1298,5 +1328,39 @@ input[placeholder], select {
   background: #c0c4cc;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* 反馈弹窗提交按钮 */
+.feedback-modal .modal-actions button:first-child {
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 22px;
+  font-size: 1em;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(64,158,255,0.18);
+}
+/* 反馈弹窗提交按钮悬停效果 */
+.feedback-modal .modal-actions button:first-child:hover {
+  background: linear-gradient(90deg, #357ae8 0%, #409eff 100%);
+}
+
+/* 反馈弹窗取消按钮 */
+.feedback-modal .modal-actions .cancel-btn {
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 22px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+/* 反馈弹窗取消按钮悬停效果 */
+.feedback-modal .modal-actions .cancel-btn:hover {
+  background: #e0e0e0;
 }
 </style>
