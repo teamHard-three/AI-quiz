@@ -1,9 +1,15 @@
 import axios from 'axios';
 
 /**
- * 提交课程反馈
- * @param data 包含课程ID和反馈内容的对象
+ * 学生提交课程反馈
  */
-export function submitFeedback(data: { courseId: string | number; content: string }) {
-  return axios.post('/api/feedback', data);
+export function submitStudentFeedback(data: { courseId: string | number; studentId: string | number; content: string }) {
+  return axios.post('/api/studentcourse/feedback', data);
+}
+
+/**
+ * 教师查看课程反馈
+ */
+export function getCourseFeedback(courseId: string | number) {
+  return axios.get(`/api/studentcourse/feedback/${courseId}`);
 } 
