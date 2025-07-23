@@ -1405,6 +1405,7 @@ button[disabled] {
   text-align: center;
 }
 
+
 .loading-text {
   font-size: 1.2em;
   color: #555;
@@ -1530,20 +1531,21 @@ div[style*='justify-content: flex-end'] button:hover {
 }
 
 /* 选课申请同意按钮 */
-.course-table .approve {
+.course-table .approve-btn {
   background: linear-gradient(90deg, #67c23a 0%, #b3e19d 100%);
   color: #fff;
 }
-.course-table .approve:hover {
+.course-table .approve-btn:hover {
   background: linear-gradient(90deg, #529b2e 0%, #67c23a 100%);
 }
 
+
 /* 选课申请不同意按钮 */
-.course-table .reject {
+.course-table .reject-btn {
   background: linear-gradient(90deg, #f56c6c 0%, #fbb1b1 100%);
   color: #fff;
 }
-.course-table .reject:hover {
+.course-table .reject-btn:hover {
   background: linear-gradient(90deg, #d9534f 0%, #f56c6c 100%);
 }
 
