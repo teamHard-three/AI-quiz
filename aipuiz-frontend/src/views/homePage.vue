@@ -1537,6 +1537,7 @@ div[style*='justify-content: flex-end'] button:hover {
   background: linear-gradient(90deg, #529b2e 0%, #67c23a 100%);
 }
 
+
 /* 选课申请不同意按钮 */
 .course-table .reject-btn {
   background: linear-gradient(90deg, #f56c6c 0%, #fbb1b1 100%);
