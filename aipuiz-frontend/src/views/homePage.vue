@@ -1405,7 +1405,6 @@ button[disabled] {
   text-align: center;
 }
 
-
 .loading-text {
   font-size: 1.2em;
   color: #555;
