@@ -44,7 +44,7 @@
                   >
                     已回答，得分：{{ quizStatuses[course.id].score }}
                   </button>
-                  <button
+                  <button class="view-quiz-btn"
                     v-else-if="course.status === 'approved' || course.status === 'APPROVED'"
                     @click="goToAnswerPage(course.id, course.name)"
                   >
@@ -116,8 +116,8 @@
                     </span>
                   </td>
                   <td>
-                    <button @click="openFeedbackModal(course.id)">问题反馈</button>
-                    <button @click="openFeedbackList(course.id, course.name)">查看反馈</button>
+                    <button class="submit-feedback-btn"@click="openFeedbackModal(course.id)">问题反馈</button>
+                    <button class="view-feedback-btn"@click="openFeedbackList(course.id, course.name)">查看反馈</button>
                   </td>
                 </tr>
               </tbody>
@@ -178,16 +178,16 @@
           </table>
           <div v-else>暂无课程</div>
           <div v-if="editVisible" class="edit-dialog">
-            <form @submit.prevent="handleEditCourse">
-              <div>
+            <form @submit.prevent="handleEditCourse" class="edit-form">
+              <div class="form-row">
                 <label>课程名称：</label>
                 <input v-model="editForm.name" required />
               </div>
-              <div>
+              <div class="form-row">
                 <label>课程描述：</label>
                 <input v-model="editForm.description" required />
               </div>
-              <div>
+              <div class="form-row">
                 <label>教师：</label>
                 <select v-model="editForm.teacherId" required>
                   <option v-for="teacher in teacherList" :key="teacher.id" :value="teacher.id">
@@ -195,8 +195,10 @@
                   </option>
                 </select>
               </div>
-              <button class="edit" type="submit">保存</button>
-              <button class="delete" type="button" @click="editVisible = false">取消</button>
+              <div class="form-actions">
+                <button class="edit" type="submit">保存</button>
+                <button class="delete" type="button" @click="editVisible = false">取消</button>
+              </div>
             </form>
           </div>
           <div style="margin-top: 28px;">
@@ -219,8 +221,8 @@
                   <td>{{ statusText(req.status) }}</td>
                   <td>
                     <template v-if="req.status === 'PENDING' || req.status === 'pending'">
-                      <button class="approve" @click="handleApproveJoin(req.id)">同意</button>
-                      <button class="reject" @click="handleRejectJoin(req.id)">不同意</button>
+                      <button class="approve-btn" @click="handleApproveJoin(req.id)">同意</button>
+                      <button class="reject-btn" @click="handleRejectJoin(req.id)">不同意</button>
                     </template>
                     <template v-else-if="req.status === 'APPROVED' || req.status === 'approved'">
                       <span style="color:green;">已同意</span>
@@ -1128,10 +1130,69 @@ button:hover {
   transform: translate(-50%, -50%);
   background: #fff;
   border: 1px solid #ccc;
-  padding: 24px;
+  padding: 32px 36px;
   z-index: 1000;
   border-radius: 10px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+  min-width: 340px;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.form-row label {
+  min-width: 80px; /* 控制冒号对齐 */
+  text-align: right;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 1em;
+  background: #fafbfc;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+.edit-form button.edit {
+  background: linear-gradient(90deg, #a0cdcc 0%, #20bba1 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 22px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.edit-form button.delete {
+  background: linear-gradient(90deg, #afddf2 0%, #003c75 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 22px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 input[placeholder], select {
@@ -1193,11 +1254,6 @@ input[placeholder], select {
   background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
 }
 
-/* 操作列的按钮（如查看课程题目） */
-.course-table td:nth-child(5) button {
-  background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
-  color: #222;
-}
 
 /* 反馈列的按钮 */
 .course-table td:nth-child(6) button {
@@ -1451,4 +1507,76 @@ button[disabled] {
 .feedback-modal .modal-actions .cancel-btn:hover {
   background: #e0e0e0;
 }
+
+/* 管理员课程查询按钮（右上角） */
+div[style*='justify-content: flex-end'] button {
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+  color: #fff;
+}
+div[style*='justify-content: flex-end'] button:hover {
+  background: linear-gradient(90deg, #357ae8 0%, #409eff 100%);
+}
+
+/* 课程详情弹窗关闭按钮 */
+.course-detail-dialog .course-detail-card button {
+  background: #e0e0e0;
+  color: #333;
+  border-radius: 20px;
+  padding: 7px 22px;
+}
+.course-detail-dialog .course-detail-card button:hover {
+  background: #bdbdbd;
+}
+
+/* 选课申请同意按钮 */
+.course-table .approve {
+  background: linear-gradient(90deg, #67c23a 0%, #b3e19d 100%);
+  color: #fff;
+}
+.course-table .approve:hover {
+  background: linear-gradient(90deg, #529b2e 0%, #67c23a 100%);
+}
+
+/* 选课申请不同意按钮 */
+.course-table .reject {
+  background: linear-gradient(90deg, #f56c6c 0%, #fbb1b1 100%);
+  color: #fff;
+}
+.course-table .reject:hover {
+  background: linear-gradient(90deg, #d9534f 0%, #f56c6c 100%);
+}
+
+/* 管理员端课程修改按钮 */
+.course-table .edit {
+  background: linear-gradient(90deg, #20bba1 0%, #a0cdcc 100%);
+  color: #fff;
+}
+.course-table .edit:hover {
+  background: linear-gradient(90deg, #1a9c8a 0%, #20bba1 100%);
+}
+
+/* 管理员端课程删除按钮 */
+.course-table .delete {
+  background: linear-gradient(90deg, #dc3545 0%, #f56c6c 100%);
+  color: #fff;
+}
+.course-table .delete:hover {
+  background: linear-gradient(90deg, #b52a37 0%, #dc3545 100%);
+}
+/* 教师问题反馈按钮 */
+.submit-feedback-btn {
+  background: linear-gradient(90deg, #67c23a 0%, #b3e19d 100%);
+  color: #fff;
+}
+/* 教师查看反馈按钮 */
+.view-feedback-btn {
+  background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
+  color: #222;
+}
+/* 学生查看课程题目按钮 */
+.view-quiz-btn {
+  background: linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%);
+  color: #fff;
+}
+
 </style>
