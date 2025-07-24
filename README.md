@@ -19,21 +19,21 @@ ai-quiz/
 
 ## 2. 配置数据库
 
-     创建数据库（如：aiquiz）并执行 /.idea/sql/schema.sql脚本导入表结构。
+     创建数据库（如：aiquiz）并执行 sql/schema.sql脚本导入表结构。
 修改 application.yml 数据库配置：
 
 yml文件
 ```yml
 spring:
-datasource:
-url: jdbc:mysql://localhost:3306/aiquiz
-username: root
-password: your_password
+    datasource:
+        url: jdbc:mysql://localhost:3306/aiquiz
+        username: root
+        password: your_password
 ```
 
 ### 3.配置OpenAI API密钥
 需要自己创建
--请在AIquiz/main/resources/config.properties中配置OpenAI API密钥：
+-请在AIquiz/main/resources/config.properties中配置Openrouter的OpenAI API密钥：
 api.key=密钥
 
 ```properties
