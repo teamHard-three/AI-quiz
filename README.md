@@ -43,6 +43,6 @@ api.key=密钥
    npm install前端配置（Vue 3）
 ```
 
-## 详细配置请查看DEPLOYMENT.md
+### 详细配置请查看DEPLOYMENT.md
 
 ## 如需帮助请联系作者1804240072@qq.com
