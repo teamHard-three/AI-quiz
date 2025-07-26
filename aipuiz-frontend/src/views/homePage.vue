@@ -38,14 +38,7 @@
                 </td>
                 <td>
                   <button
-                    v-if="quizStatuses[course.id] && quizStatuses[course.id].status === 'answered'"
-                    class="answered-btn"
-                    disabled
-                  >
-                    已回答，得分：{{ quizStatuses[course.id].score }}
-                  </button>
-                  <button class="view-quiz-btn"
-                    v-else-if="course.status === 'approved' || course.status === 'APPROVED'"
+                    v-if="course.status === 'approved' || course.status === 'APPROVED'"
                     @click="goToAnswerPage(course.id, course.name)"
                   >
                     查看课程题目
@@ -330,18 +323,6 @@ import { getCourseFeedback, submitStudentFeedback } from '@/api/feedback'
 const router = useRouter()
 const user = ref()
 
-// State for quiz statuses - RE-ADD THIS
-const quizStatuses = ref<Record<string, { status: string; score: string }>>({})
-
-const updateQuizStatuses = () => {
-  studentCourseList.value.forEach(course => {
-    const status = localStorage.getItem(`quizStatus_${course.id}`)
-    if (status) {
-      quizStatuses.value[course.id] = JSON.parse(status)
-    }
-  })
-}
-
 function updateUser() {
   const u = localStorage.getItem('user')
   user.value = u ? JSON.parse(u) : null
@@ -463,8 +444,6 @@ onActivated(async () => {
     await fetchStudentCourseList()
   }
 })
-
-watch(studentCourseList, updateQuizStatuses)
 
 const allJoinRequests = ref<any[]>([])
 
@@ -588,15 +567,6 @@ const handleRejectJoin = async (requestId: string | number) => {
 // 教师课程列表
 const teacherCourseList = ref<any[]>([])
 
-const checkUploadedFiles = () => {
-  teacherCourseList.value.forEach(course => {
-    const file = localStorage.getItem('uploadedFile_' + course.id)
-    if (file && uploadStatusMap.value[course.id] !== 'generated') {
-      uploadStatusMap.value[course.id] = 'uploaded'
-  }
-  })
-}
-
 //获取教师课程列表
 const fetchTeacherCourseList = async () => {
   if (!user.value) return
@@ -623,16 +593,6 @@ const fetchTeacherCourseList = async () => {
           console.error(`Failed to check questions for course ${course.id}`, e);
         }
       }
-      // 3. 再检查本地上传记录，但**不能覆盖 generated**
-      teacherCourseList.value.forEach(course => {
-        const file = localStorage.getItem('uploadedFile_' + course.id)
-        if (
-          file &&
-          uploadStatusMap.value[course.id] !== 'generated'
-        ) {
-          uploadStatusMap.value[course.id] = 'uploaded'
-        }
-      })
     }
   } catch (e) {
     alert('获取课程列表失败')
@@ -696,7 +656,6 @@ const handleUpload = async (courseId: string | number) => {
     uploadProgress.value = 100
     fakeProgressValue.value = 100
     alert('上传成功')
-    localStorage.setItem('uploadedFile_' + courseId, selectedFile.value.name) // 存储文件名
     selectedFile.value = null
     uploadingCourseId.value = ''
     uploadStatusMap.value[courseId] = 'uploaded'
@@ -1249,7 +1208,7 @@ input[placeholder], select {
   padding: 6px 12px;
 }
 
-/* 选课状态列的按钮（如“选择”、“重新申请”），蓝色渐变 */
+/* 选课状态列的按钮（如"选择"、"重新申请"），蓝色渐变 */
 .course-table td:nth-child(4) button {
   background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
 }
