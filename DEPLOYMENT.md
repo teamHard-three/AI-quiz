@@ -231,40 +231,6 @@ export default defineConfig({
 }
 ```
 
-## 🐳 Docker 部署
-
-### 后端 Dockerfile
-```dockerfile
-FROM openjdk:21-jdk-slim
-
-WORKDIR /app
-
-COPY target/AIquiz-0.0.1-SNAPSHOT.jar app.jar
-
-EXPOSE 8080
-
-CMD ["java", "-jar", "app.jar"]
-```
-
-### 前端 Dockerfile
-```dockerfile
-FROM node:20-alpine as build
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-
-EXPOSE 80
-```
-
-### Docker Compose
 ```yaml
 version: '3.8'
 
